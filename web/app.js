@@ -225,7 +225,7 @@ async function publish(ev) {
   const btn = ev.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Signing…";
   try {
-    const msg = `Falsify: publish assertion "${assertion}" with bounty ${bounty} ${currency}`;
+    const msg = `Falsify: start bounty on claim "${assertion}" with ${bounty} ${currency}`;
     const signature = await signMessage(msg);
     const rec = await api("/api/assertions", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -238,7 +238,7 @@ async function publish(ev) {
   } catch (e) {
     alert("error: " + e.message);
   } finally {
-    btn.disabled = false; btn.textContent = "Sign & publish";
+    btn.disabled = false; btn.textContent = "Sign & start bounty";
   }
 }
 

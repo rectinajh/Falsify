@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Falsify — Settlement for verifiable AI work</title>
+<title>Falsify — Put a price on being wrong</title>
 <style>
 :root{--bg:#05070d;--panel:rgba(255,255,255,.03);--border:rgba(255,255,255,.09);--text:#eef1f6;--muted:#8b94a7;--brand:#6366f1;--brand2:#a855f7;--cyan:#22d3ee;--green:#34d399;--red:#fb7185;--amber:#fbbf24}
 *{box-sizing:border-box}
@@ -103,13 +103,13 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
 <main id="top" class="wrap">
   <section class="hero fade">
-    <span class="eyebrow">Settlement for verifiable AI work</span>
-    <h1>Don't trust the claim.<br><span class="grad">Pay agents to break it.</span></h1>
-    <p class="lead">AI now produces claims faster than anyone can verify them. Falsify is the settlement
-    primitive that pays adversarial agents to falsify assertions — and only releases the bounty when a
-    deterministic verifier proves a counterexample broke the committed test.</p>
+    <span class="eyebrow">Adversarial testing, settled on-chain</span>
+    <h1>Put a price on being wrong.<br><span class="grad">Keep the bounty if you're right.</span></h1>
+    <p class="lead">AI ships code, data, and claims faster than anyone can verify them. Falsify pays
+    attackers to break your claim — and only pays out when they actually do. If it survives, you've
+    proven it's worth something.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="#publish">Publish an assertion</a>
+      <a class="btn btn-primary" href="#publish">Start a bounty</a>
       <button id="connectBtn2" class="btn btn-ghost">Connect wallet</button>
     </div>
     <div class="stats" id="stats"></div>
@@ -117,31 +117,31 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
   <section id="how">
     <h2>One trustless loop</h2>
-    <p class="sub">A claim is only worth its settlement if it survives paid attempts to falsify it.</p>
+    <p class="sub">Three steps. One question: can anyone break it before your users do?</p>
     <div class="grid3">
-      <div class="card"><div class="step">01 · Escrow</div><h3>Publish a claim + a bounty</h3><p>A customer escrows USDC behind an assertion and a committed acceptance test. If it's false, someone gets paid to prove it.</p></div>
-      <div class="card"><div class="step">02 · Attack</div><h3>Adversarial agents falsify</h3><p>Gemini generates counterexamples for correctness claims; a deterministic harness attacks security claims. Invalid attempts earn nothing.</p></div>
-      <div class="card"><div class="step">03 · Settle</div><h3>A deterministic verifier decides</h3><p>Only a machine-checkable break of the committed test releases the bounty — never an LLM, never a human opinion.</p></div>
+      <div class="card"><div class="step">01 · Stake</div><h3>Put money on your claim</h3><p>State a claim, stake a bounty. If you're wrong, someone gets paid to prove it.</p></div>
+      <div class="card"><div class="step">02 · Attack</div><h3>Attackers try to break it</h3><p>AI hunts for counterexamples. Wrong guesses earn nothing.</p></div>
+      <div class="card"><div class="step">03 · Settle</div><h3>Only a real break pays</h3><p>A machine check decides: if they break it, they take the bounty. If it survives, you keep it.</p></div>
     </div>
   </section>
 
   <section id="publish">
     <div class="panel">
-      <h2>Publish an assertion</h2>
+      <h2>Start a bounty</h2>
       <form id="publishForm">
         <label>Claim type</label>
         <select id="p_claimType">
           <option value="correctness">Correctness — Gemini generates the counterexample</option>
           <option value="security">Security — deterministic attack harness</option>
         </select>
-        <label>Assertion</label>
+        <label>Your claim</label>
         <textarea id="p_assertion">Math.add(a, b) returns a + b for all non-negative integers a, b.</textarea>
         <div class="row">
           <div><label>Bounty (USDC)</label><input id="p_bounty" type="number" value="1" min="0.01" step="0.01"></div>
           <div><label>Currency</label><select id="p_currency"><option value="USDC">USDC (Base Sepolia)</option><option value="ETH">ETH (local)</option></select></div>
         </div>
         <div class="ass-actions">
-          <button class="btn btn-primary" type="submit">Sign & publish</button>
+          <button class="btn btn-primary" type="submit">Sign & start bounty</button>
           <span class="muted" style="font-size:.82rem">Signs with your connected wallet — the escrow commitment is yours.</span>
         </div>
         <div id="sigBox" class="sig" style="display:none">Signed by <code id="sigAddr"></code></div>
