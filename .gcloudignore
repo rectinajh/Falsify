@@ -1,0 +1,14 @@
+.git
+.gitignore
+.gcloudignore
+.dockerignore
+.env
+.env.example
+node_modules
+data/
+out/
+cache/
+broadcast/
+verdict.json
+*.log
+.DS_Store
