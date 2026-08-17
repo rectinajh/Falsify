@@ -1,0 +1,21 @@
+# Cloud Build -> Artifact Registry -> Cloud Run.
+# Requires an Artifact Registry repo named `falsify` in us-central1.
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "us-central1-docker.pkg.dev/$PROJECT_ID/falsify/falsify", "."]
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "us-central1-docker.pkg.dev/$PROJECT_ID/falsify/falsify"]
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - falsify
+      - --image=us-central1-docker.pkg.dev/$PROJECT_ID/falsify/falsify
+      - --region=us-central1
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-env-vars=GEMINI_MODEL=gemini-3.6-flash
+      - --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest
+images:
+  - us-central1-docker.pkg.dev/$PROJECT_ID/falsify/falsify

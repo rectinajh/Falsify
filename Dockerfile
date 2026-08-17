@@ -11,6 +11,9 @@ RUN apt-get update \
 WORKDIR /app
 COPY . .
 
+# Precompile the Foundry project so cold starts don't pay a compile penalty.
+RUN forge build
+
 ENV PORT=8080
 EXPOSE 8080
 
