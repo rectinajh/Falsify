@@ -72,6 +72,11 @@ a.tx:hover{text-decoration:underline}
 pre{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:.9rem;overflow:auto;font-size:.78rem}
 .fade{animation:fade .5s ease}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.timeline{position:relative;padding-left:1.6rem}
+.timeline::before{content:"";position:absolute;left:.45rem;top:.3rem;bottom:.3rem;width:2px;background:var(--border)}
+.tl-item{position:relative;padding:.35rem 0 .85rem}
+.tl-dot{position:absolute;left:-1.6rem;top:.5rem;width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid var(--bg);box-shadow:0 0 0 2px var(--border)}
+.tl-body .step{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--cyan);margin-bottom:.15rem}
 .ass-actions{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:.9rem}
 .sig{margin-top:.9rem;padding:.7rem .8rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.22);border-radius:10px;font-size:.82rem;color:var(--muted)}
 .sig code{color:var(--cyan)}
@@ -86,6 +91,8 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
     <a class="brand" href="#top"><span class="logo">F</span><span class="nm">Falsify</span></a>
     <nav class="nav">
       <a href="#how">How it works</a>
+      <a href="#who">Who it's for</a>
+      <a href="#why">Why Falsify</a>
       <a href="#publish">Publish</a>
       <a href="#assertions">Assertions</a>
       <a href="#reputation">Reputation</a>
@@ -121,6 +128,42 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
       <div class="card"><div class="step">01 · Stake</div><h3>Put skin in the game</h3><p>State your claim. Stake the bounty. Being wrong gets expensive.</p></div>
       <div class="card"><div class="step">02 · Attack</div><h3>Prove me wrong</h3><p>Attackers hunt for the break. Bad guesses pay nothing.</p></div>
       <div class="card"><div class="step">03 · Settle</div><h3>Code decides</h3><p>A deterministic check settles it. No human, no LLM, no appeals.</p></div>
+    </div>
+  </section>
+
+  <section id="who">
+    <h2>Who it's for</h2>
+    <p class="sub">If you ship code, data, or AI output — someone should get paid to break it before your users do.</p>
+    <div class="grid3">
+      <div class="card"><div class="step">Smart contracts</div><h3>Ship without the $50k audit</h3><p>Green tests prove nothing. Put a bounty on your contract and let attackers find the bug first.</p></div>
+      <div class="card"><div class="step">Data & AI teams</div><h3>Prove the pipeline, or pay up</h3><p>Your model says "correct". Back it with a bounty — if a counterexample breaks it, you just bought the cheapest bug report.</p></div>
+      <div class="card"><div class="step">Independent builders</div><h3>Security without the enterprise plan</h3><p>No retainer, no weeks of waiting. Stake a bounty tonight and get attacked by dawn.</p></div>
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>Why Falsify</h2>
+    <p class="sub">Audits cost thousands and end in a PDF. Falsify is a market where the payout is decided by a test, not a reputation.</p>
+    <div class="panel">
+      <table>
+        <thead><tr><th></th><th>Falsify</th><th>Security audit</th><th>Bug bounty</th></tr></thead>
+        <tbody>
+          <tr><td>Cost</td><td><strong>$20–$2k bounty</strong></td><td>$5k–$50k</td><td>$500+ setup</td></tr>
+          <tr><td>Time to result</td><td><strong>minutes</strong></td><td>weeks</td><td>days–months</td></tr>
+          <tr><td>Who decides payout</td><td><strong>deterministic test</strong></td><td>human judgment</td><td>human triage</td></tr>
+          <tr><td>Accountability</td><td><strong>on-chain, immutable</strong></td><td>PDF report</td><td>platform rules</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="cases">
+    <h2>Proven in the wild</h2>
+    <p class="sub">Real breaks, settled by the deterministic verifier.</p>
+    <div class="grid3">
+      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Math.add(a,b)</h3><p>Claimed to always sum. Gemini found <span class="mono">a=1, b=1</span> — the contract returns <span class="mono">0</span>. Bounty paid.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Vault.withdraw()</h3><p>Claimed reentrancy-safe. The deterministic harness drained <span class="mono">11 ETH</span>. Bounty paid.</p></div>
+      <div class="card"><div class="step" style="color:var(--green)">SURVIVED</div><h3>Your next claim</h3><p>Publish it. If nobody breaks it, you keep the bounty and the proof.</p></div>
     </div>
   </section>
 

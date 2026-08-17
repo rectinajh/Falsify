@@ -1,5 +1,6 @@
 const BASE_SEPOLIA_CHAIN_ID = "0x14a34";
 const BASE_SEPOLIA_NAME = "Base Sepolia";
+const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e";
 const state = { account: null, chainId: null, summary: {}, assertions: [], agents: [], settlements: [], evidence: [] };
 const VERIFIED = {
   contract: "0x8A8D11cFb79F3c38f4961de49B914a8FF23De56C",
@@ -38,6 +39,7 @@ async function connectWallet() {
     state.account = accounts[0];
     state.chainId = chainId;
     renderWallet();
+    await fetchBalances();
     return accounts[0];
   } catch (e) {
     if (e.code !== 4001) alert("Wallet error: " + (e.message || e.code));
@@ -80,11 +82,25 @@ function renderWallet() {
     info.style.display = "flex";
     addr.textContent = short(state.account);
     addr.title = state.account;
+    const bal = state.balances;
+    if (bal) addr.textContent = `${short(state.account)} · ${bal.eth.toFixed(4)} ETH · ${bal.usdc.toFixed(2)} USDC`;
   } else {
     btn.style.display = "";
     btn2.textContent = "Connect wallet";
     info.style.display = "none";
   }
+}
+async function fetchBalances() {
+  if (!state.account || !hasWallet()) return;
+  try {
+    const ethHex = await window.ethereum.request({ method: "eth_getBalance", params: [state.account, "latest"] });
+    const data = "0x70a08231" + state.account.slice(2).padStart(64, "0");
+    const usdcHex = await window.ethereum.request({ method: "eth_call", params: [{ to: USDC_ADDRESS, data }, "latest"] });
+    state.balances = { eth: Number(BigInt(ethHex)) / 1e18, usdc: Number(BigInt(usdcHex)) / 1e6 };
+  } catch {
+    state.balances = null;
+  }
+  renderWallet();
 }
 async function signMessage(msg) {
   const hex = "0x" + [...new TextEncoder().encode(msg)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -132,10 +148,19 @@ function renderAssertions() {
           <button class="btn btn-ghost" data-falsify="${a.id}" ${a.status === "falsified" ? "disabled" : ""}>Run falsification</button>
         </div>
       </div>
-      ${a.counterexamples?.length ? `<table style="margin-top:1rem"><thead><tr><th>Counterexample</th><th>Verdict</th><th>Gemini</th></tr></thead><tbody>` +
-        a.counterexamples.map((c) => `<tr><td class="mono" style="font-size:.8rem">${esc(c.hash?.slice(0, 16))}…</td><td>${verdictPill(c.verdict)}</td><td>${c.gemini?.called ? "yes" : "no"}</td></tr>`).join("") +
-        `</tbody></table>` : `<div class="muted" style="margin-top:.8rem;font-size:.88rem">No counterexamples submitted yet.</div>`}
+      ${renderCounterexamples(a)}
     </div>`).join("");
+}
+
+function renderCounterexamples(a) {
+  const cexes = a.counterexamples ?? [];
+  if (!cexes.length) return `<div class="muted" style="margin-top:.8rem;font-size:.88rem">No counterexamples submitted yet.</div>`;
+  const rows = cexes.map((c) => `<tr><td class="mono" style="font-size:.8rem">${esc(c.hash?.slice(0, 16))}…</td><td>${verdictPill(c.verdict)}</td><td>${c.gemini?.called ? "Gemini" : "harness"}</td></tr>`).join("");
+  const reasoning = cexes
+    .filter((c) => c.gemini?.reasoning)
+    .map((c) => `<div style="margin-top:.6rem;padding:.6rem .75rem;border-left:2px solid var(--brand);background:rgba(99,102,241,.07);border-radius:6px;font-size:.85rem;color:var(--muted)"><strong style="color:var(--text)">Gemini reasoning:</strong> ${esc(c.gemini.reasoning)}</div>`)
+    .join("");
+  return `<table style="margin-top:1rem"><thead><tr><th>Counterexample</th><th>Verdict</th><th>Generator</th></tr></thead><tbody>${rows}</tbody></table>${reasoning}`;
 }
 
 function renderReputation() {
@@ -174,16 +199,17 @@ function renderSettlements() {
 function renderEvidence() {
   const list = state.evidence.slice().reverse();
   if (!list.length) return `<div class="panel"><div class="empty">No evidence yet.</div></div>`;
-  return list.map((e) => `
-    <div class="panel">
-      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap">
-        <div><strong>#${esc(e.assertionId)}</strong> · ${esc(e.claimType)}</div>
-        <div class="mono muted" style="font-size:.78rem">${esc(e.ts)}</div>
-      </div>
-      <div style="margin-top:.4rem">${esc(e.assertion)}</div>
-      <div style="margin-top:.5rem">${verdictPill(e.verdict?.result)} <span class="muted" style="font-size:.82rem">exit ${esc(e.verdict?.exitCode)}</span></div>
-      <pre>${esc(JSON.stringify(e, null, 2))}</pre>
-    </div>`).join("");
+  return `<div class="panel"><div class="timeline">` + list.map((e) => {
+    const attack = e.gemini?.called
+      ? `<div class="tl-item"><div class="tl-dot" style="background:var(--brand2)"></div><div class="tl-body"><div class="step">Attack</div><div>${e.gemini.counterexample ? `Counterexample <span class="mono">a=${esc(e.gemini.counterexample.a)}, b=${esc(e.gemini.counterexample.b)}</span>` : "Gemini attempted"}${e.gemini.reasoning ? `<div class="muted" style="font-size:.82rem;margin-top:.2rem">${esc(e.gemini.reasoning)}</div>` : ""}</div></div></div>`
+      : `<div class="tl-item"><div class="tl-dot" style="background:var(--brand2)"></div><div class="tl-body"><div class="step">Attack</div><div>Deterministic harness</div></div></div>`;
+    const dot = e.verdict?.result === "FALSIFIED" ? "var(--red)" : "var(--green)";
+    return `
+      <div class="tl-item"><div class="tl-dot"></div><div class="tl-body"><div class="step">Claim</div><div><strong>#${esc(e.assertionId)}</strong> · ${esc(e.assertion)}</div><div class="mono muted" style="font-size:.75rem;margin-top:.15rem">${esc(e.ts)}</div></div></div>
+      ${attack}
+      <div class="tl-item"><div class="tl-dot" style="background:${dot}"></div><div class="tl-body"><div class="step">Verdict</div><div>${verdictPill(e.verdict?.result)} <span class="muted" style="font-size:.82rem">exit ${esc(e.verdict?.exitCode)}</span></div></div></div>
+    `;
+  }).join("") + `</div></div>`;
 }
 
 function render() {
@@ -246,7 +272,7 @@ async function publish(ev) {
 document.getElementById("connectBtn").addEventListener("click", connectWallet);
 document.getElementById("connectBtn2").addEventListener("click", connectWallet);
 if (window.ethereum) {
-  window.ethereum.on("accountsChanged", (accs) => { state.account = accs[0] ?? null; renderWallet(); });
-  window.ethereum.on("chainChanged", (cid) => { state.chainId = cid; renderWallet(); });
+  window.ethereum.on("accountsChanged", (accs) => { state.account = accs[0] ?? null; fetchBalances(); });
+  window.ethereum.on("chainChanged", (cid) => { state.chainId = cid; fetchBalances(); });
 }
 loadAll().catch((e) => { document.getElementById("stats").innerHTML = `<div class="panel" style="color:var(--red)">Failed to load: ${esc(e.message)}</div>`; });
