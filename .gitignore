@@ -4,3 +4,4 @@ broadcast/
 .env
 verdict.json
 data/
+node_modules/

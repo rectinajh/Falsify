@@ -1,0 +1,9 @@
+{
+  "name": "falsify",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Settlement for verifiable AI work",
+  "dependencies": {
+    "@google-cloud/firestore": "^7.11.0"
+  }
+}

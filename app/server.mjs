@@ -5,7 +5,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, appendFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
-  load,
+  hydrate,
   createAssertion,
   getAssertion,
   listAssertions,
@@ -26,7 +26,7 @@ const LOG_FILE = join(DATA_DIR, "logs.jsonl");
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
 
-load();
+await hydrate();
 
 function sha256hex(input) {
   return createHash("sha256").update(String(input)).digest("hex");

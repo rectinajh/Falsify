@@ -4,6 +4,20 @@ import { join } from "node:path";
 const DATA_DIR = process.env.DATA_DIR ?? "data";
 const STORE_FILE = join(DATA_DIR, "store.json");
 
+let firestore = null;
+async function getFirestore() {
+  if (process.env.FIRESTORE !== "true") return null;
+  if (firestore) return firestore;
+  try {
+    const { Firestore } = await import("@google-cloud/firestore");
+    firestore = new Firestore();
+    return firestore;
+  } catch (e) {
+    console.error("firestore init failed:", e.message);
+    return null;
+  }
+}
+
 let state = {
   assertions: [],
   agents: [],
@@ -26,6 +40,34 @@ export function load() {
 function save() {
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(STORE_FILE, JSON.stringify(state, null, 2) + "\n");
+  if (process.env.FIRESTORE === "true") {
+    getFirestore().then((db) => {
+      if (db) {
+        db.collection("state").doc("main").set({ ...state, updatedAt: Date.now() })
+          .catch((e) => console.error("firestore write:", e.message));
+      }
+    });
+  }
+}
+
+export async function hydrate() {
+  if (process.env.FIRESTORE === "true") {
+    const db = await getFirestore();
+    if (db) {
+      try {
+        const doc = await db.collection("state").doc("main").get();
+        if (doc.exists) {
+          const data = doc.data();
+          delete data.updatedAt;
+          state = data;
+          return;
+        }
+      } catch (e) {
+        console.error("firestore hydrate:", e.message);
+      }
+    }
+  }
+  load();
 }
 
 export function createAssertion({ assertion, claimType, bounty, currency, customer }) {
