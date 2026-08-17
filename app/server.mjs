@@ -65,7 +65,7 @@ function runForge(matchTest, env = {}) {
   };
 }
 
-async function geminiCounterexample(assertion) {
+async function geminiCounterexample(assertion, persona = "") {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return { called: false, error: "GEMINI_API_KEY is not set" };
   let artifact = "";
@@ -78,6 +78,7 @@ async function geminiCounterexample(assertion) {
 Assertion: ${assertion}
 Target contract source:
 ${artifact}
+${persona ? `Persona focus: ${persona}` : ""}
 Find specific non-negative integers (a, b) where add(a, b) is NOT equal to a + b.
 Return JSON with exactly these keys:
 - a: non-negative integer
@@ -247,6 +248,8 @@ const server = createServer(async (req, res) => {
       currency: body.currency ?? "ETH",
       customer: body.customer,
       signature: body.signature,
+      onChainId: body.onChainId,
+      onChainTx: body.onChainTx,
     });
     onChainCreate(rec, rec.id);
     logEvent("assertion_created", { id: rec.id, claimType: rec.claimType });
@@ -265,17 +268,23 @@ const server = createServer(async (req, res) => {
     let testRef = null;
     let payload = null;
     let note = null;
+    let attempts = [];
 
     if (assertion.claimType === "correctness") {
-      gemini = await geminiCounterexample(assertion.assertion);
       testRef = "test_add_returns_sum";
-      if (gemini.called && !gemini.error && gemini.counterexample) {
-        payload = gemini.counterexample;
-        verdict = runForge("test_add_returns_sum", {
-          COUNTEREXAMPLE_A: String(payload.a),
-          COUNTEREXAMPLE_B: String(payload.b),
-        });
+      const personas = ["edge cases and boundary values", "equality and identity checks", "overflow and precision"];
+      const gens = await Promise.all(personas.map((p) => geminiCounterexample(assertion.assertion, p)));
+      for (const g of gens) {
+        if (g.called && !g.error && g.counterexample) {
+          const v = runForge("test_add_returns_sum", {
+            COUNTEREXAMPLE_A: String(g.counterexample.a),
+            COUNTEREXAMPLE_B: String(g.counterexample.b),
+          });
+          attempts.push({ gemini: g, payload: g.counterexample, verdict: v });
+        }
       }
+      const winner = attempts.find((a) => a.verdict.result === "FALSIFIED") ?? attempts[0];
+      if (winner) { gemini = winner.gemini; payload = winner.payload; verdict = winner.verdict; }
     } else {
       const r = runFalsify(assertion);
       verdict = r.verdict;
@@ -289,7 +298,20 @@ const server = createServer(async (req, res) => {
     }
 
     const hash = bytes32(`${id}:${verdict.stdoutHash}:${JSON.stringify(payload ?? {})}`);
-    addCounterexample(id, { hash, agentId: 1, verdict: verdict.result, payload, gemini, testRef });
+    if (attempts.length) {
+      for (const a of attempts) {
+        addCounterexample(id, {
+          hash: bytes32(`${id}:${a.verdict.stdoutHash}:${JSON.stringify(a.payload)}`),
+          agentId: 1,
+          verdict: a.verdict.result,
+          payload: a.payload,
+          gemini: a.gemini,
+          testRef,
+        });
+      }
+    } else {
+      addCounterexample(id, { hash, agentId: 1, verdict: verdict.result, payload, gemini, testRef });
+    }
 
     if (verdict.result === "FALSIFIED") {
       const bounty = assertion.bounty;
@@ -314,6 +336,7 @@ const server = createServer(async (req, res) => {
       verdict,
       testRef,
       note,
+      agents: attempts.length,
     };
     appendEvidence(evidence);
     return sendJson(res, 200, { assertion: getAssertion(id), verdict, gemini, note });

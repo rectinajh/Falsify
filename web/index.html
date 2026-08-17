@@ -77,6 +77,12 @@ pre{background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;
 .tl-item{position:relative;padding:.35rem 0 .85rem}
 .tl-dot{position:absolute;left:-1.6rem;top:.5rem;width:12px;height:12px;border-radius:50%;background:var(--brand);border:2px solid var(--bg);box-shadow:0 0 0 2px var(--border)}
 .tl-body .step{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--cyan);margin-bottom:.15rem}
+.flow{display:flex;flex-direction:column;align-items:center;gap:.35rem;text-align:center}
+.fnode{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:.7rem 1.1rem;font-weight:600;max-width:420px}
+.farrow{color:var(--muted);font-size:1.1rem}
+.fbranch{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:.3rem}
+.fnode.red{border-color:rgba(251,113,133,.4);background:rgba(251,113,133,.07)}
+.fnode.green{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.07)}
 .ass-actions{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:.9rem}
 .sig{margin-top:.9rem;padding:.7rem .8rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.22);border-radius:10px;font-size:.82rem;color:var(--muted)}
 .sig code{color:var(--cyan)}
@@ -94,6 +100,7 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
       <a href="#how">How it works</a>
       <a href="#who">Who it's for</a>
       <a href="#why">Why Falsify</a>
+      <a href="#pricing">Pricing</a>
       <a href="#publish">Publish</a>
       <a href="#assertions">Assertions</a>
       <a href="#reputation">Reputation</a>
@@ -144,6 +151,20 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
       <div class="card"><div class="step">02 · Attack</div><h3>Prove me wrong</h3><p>Attackers hunt for the break. Bad guesses pay nothing.</p></div>
       <div class="card"><div class="step">03 · Settle</div><h3>Code decides</h3><p>A deterministic check settles it. No human, no LLM, no appeals.</p></div>
     </div>
+    <div class="panel" style="margin-top:1rem">
+      <div class="flow">
+        <div class="fnode">1 · Customer stakes a bounty on a claim</div>
+        <div class="farrow">↓</div>
+        <div class="fnode">2 · Three adversarial agents attack (Gemini + harness)</div>
+        <div class="farrow">↓</div>
+        <div class="fnode">3 · Deterministic verifier runs the committed test</div>
+        <div class="farrow">↓</div>
+        <div class="fbranch">
+          <div class="fnode red">Test breaks → FALSIFIED<br><span class="muted" style="font-size:.82rem">85% to finder · 15% platform fee</span></div>
+          <div class="fnode green">Test holds → NOT_FALSIFIED<br><span class="muted" style="font-size:.82rem">$0 payout · false-claim mark</span></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="who">
@@ -182,6 +203,16 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
     </div>
   </section>
 
+  <section id="pricing">
+    <h2>Pricing</h2>
+    <p class="sub">Pay only when a claim actually breaks. The bounty stays yours until it's falsified.</p>
+    <div class="grid3">
+      <div class="card"><div class="step">Per bounty</div><h3>15% on settled bounties</h3><p>Stake any amount. Survive — you keep the bounty. Break — the finder takes 85%, Falsify takes 15%.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Continuous · soon</div><h3>Every deploy gets attacked</h3><p>Subscription that auto-bounties each new claim. Recurring adversarial testing for teams that ship constantly.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Volume · soon</div><h3>Enterprise-scale verification</h3><p>Bulk bounties, custom verifiers, and SLA-backed settlement for large AI pipelines.</p></div>
+    </div>
+  </section>
+
   <section id="publish">
     <div class="panel">
       <h2>Start a bounty</h2>
@@ -196,6 +227,12 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
         <div class="row">
           <div><label>Bounty (USDC)</label><input id="p_bounty" type="number" value="1" min="0.01" step="0.01"></div>
           <div><label>Currency</label><select id="p_currency"><option value="USDC">USDC (Base Sepolia)</option><option value="ETH">ETH (local)</option></select></div>
+        </div>
+        <div style="margin-top:.9rem">
+          <label style="display:flex;align-items:center;gap:.5rem;font-weight:500;color:var(--text)">
+            <input type="checkbox" id="p_onchain" style="width:auto">
+            Escrow on Base Sepolia (real on-chain USDC)
+          </label>
         </div>
         <div class="ass-actions">
           <button class="btn btn-primary" type="submit">Sign & start bounty</button>

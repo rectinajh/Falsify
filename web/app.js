@@ -11,6 +11,19 @@ const VERIFIED = {
 function baseScan(kind, hash) {
   return `https://sepolia.basescan.org/${kind}/${hash}`;
 }
+const SETTLEMENT = "0x8A8D11cFb79F3c38f4961de49B914a8FF23De56C";
+const pad32 = (h) => String(h).replace(/^0x/, "").padStart(64, "0");
+const uint256 = (n) => BigInt(n).toString(16).padStart(64, "0");
+async function sha256hex(s) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function encodeApprove(spender, amount) {
+  return "0x095ea7b3" + pad32(spender) + uint256(amount);
+}
+function encodeCreateAssertionUSDC(assertionHash, testRef, deadline, bounty, proof) {
+  return "0x32ae260d" + pad32(assertionHash) + pad32(testRef) + uint256(deadline) + uint256(bounty) + pad32(proof);
+}
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -105,6 +118,28 @@ async function fetchBalances() {
 async function signMessage(msg) {
   const hex = "0x" + [...new TextEncoder().encode(msg)].map((b) => b.toString(16).padStart(2, "0")).join("");
   return await window.ethereum.request({ method: "personal_sign", params: [hex, state.account] });
+}
+async function escrowOnChain(assertion, bountyUSDC) {
+  const amount = BigInt(Math.round(bountyUSDC * 1e6));
+  const approveData = encodeApprove(SETTLEMENT, amount);
+  const approveTx = await window.ethereum.request({
+    method: "eth_sendTransaction",
+    params: [{ from: state.account, to: USDC_ADDRESS, data: approveData }],
+  });
+  const assertionHash = "0x" + (await sha256hex(assertion)).slice(0, 64);
+  const testRef = "0x" + "9".repeat(64);
+  const proof = "0x" + "f".repeat(64);
+  const deadline = Math.floor(Date.now() / 1000) + 86400;
+  const createData = encodeCreateAssertionUSDC(assertionHash, testRef, deadline, amount, proof);
+  const createTx = await window.ethereum.request({
+    method: "eth_sendTransaction",
+    params: [{ from: state.account, to: SETTLEMENT, data: createData }],
+  });
+  const nextIdHex = await window.ethereum.request({
+    method: "eth_call",
+    params: [{ to: SETTLEMENT, data: "0x5b366bb9" }, "latest"],
+  });
+  return { onChainId: parseInt(nextIdHex, 16), approveTx, createTx, assertionHash };
 }
 
 // ---------- data ----------
@@ -248,14 +283,23 @@ async function publish(ev) {
   const claimType = document.getElementById("p_claimType").value;
   const bounty = Number(document.getElementById("p_bounty").value);
   const currency = document.getElementById("p_currency").value;
+  const onchain = document.getElementById("p_onchain")?.checked;
   const btn = ev.target.querySelector("button[type=submit]");
   btn.disabled = true; btn.textContent = "Signing…";
   try {
-    const msg = `Falsify: start bounty on claim "${assertion}" with ${bounty} ${currency}`;
-    const signature = await signMessage(msg);
+    const payload = { assertion, claimType, bounty, currency, customer: state.account };
+    if (onchain) {
+      await ensureBaseSepolia();
+      btn.textContent = "Escrowing on-chain…";
+      const esc = await escrowOnChain(assertion, bounty);
+      Object.assign(payload, { onChainId: esc.onChainId, onChainTx: esc.createTx, assertionHash: esc.assertionHash });
+    } else {
+      const msg = `Falsify: start bounty on claim "${assertion}" with ${bounty} ${currency}`;
+      payload.signature = await signMessage(msg);
+    }
     const rec = await api("/api/assertions", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assertion, claimType, bounty, currency, customer: state.account, signature }),
+      body: JSON.stringify(payload),
     });
     document.getElementById("sigBox").style.display = "block";
     document.getElementById("sigAddr").textContent = short(state.account);

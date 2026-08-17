@@ -70,7 +70,7 @@ export async function hydrate() {
   load();
 }
 
-export function createAssertion({ assertion, claimType, bounty, currency, customer, signature }) {
+export function createAssertion({ assertion, claimType, bounty, currency, customer, signature, onChainId, onChainTx }) {
   const id = state.nextAssertionId++;
   const rec = {
     id,
@@ -83,7 +83,8 @@ export function createAssertion({ assertion, claimType, bounty, currency, custom
     status: "open",
     createdAt: new Date().toISOString(),
     deadline: null,
-    onChainId: null,
+    onChainId: onChainId ? Number(onChainId) : null,
+    onChainTx: onChainTx ?? null,
     counterexamples: [],
   };
   state.assertions.push(rec);
