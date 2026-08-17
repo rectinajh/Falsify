@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Falsify — Put a price on being wrong</title>
+<title>Falsify — Every claim is guilty until falsified</title>
 <style>
 :root{--bg:#05070d;--panel:rgba(255,255,255,.03);--border:rgba(255,255,255,.09);--text:#eef1f6;--muted:#8b94a7;--brand:#6366f1;--brand2:#a855f7;--cyan:#22d3ee;--green:#34d399;--red:#fb7185;--amber:#fbbf24}
 *{box-sizing:border-box}
@@ -103,13 +103,12 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
 <main id="top" class="wrap">
   <section class="hero fade">
-    <span class="eyebrow">Adversarial testing, settled on-chain</span>
-    <h1>Put a price on being wrong.<br><span class="grad">Keep the bounty if you're right.</span></h1>
-    <p class="lead">AI ships code, data, and claims faster than anyone can verify them. Falsify pays
-    attackers to break your claim — and only pays out when they actually do. If it survives, you've
-    proven it's worth something.</p>
+    <span class="eyebrow">Don't trust. Falsify.</span>
+    <h1>Every claim is guilty<br><span class="grad">until it's falsified.</span></h1>
+    <p class="lead">AI mints code, data, and claims faster than anyone can audit them. Falsify puts a
+    bounty on your claim — break it, take the money. Survive it, and it was never just faith.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="#publish">Start a bounty</a>
+      <a class="btn btn-primary" href="#publish">Put a bounty on it</a>
       <button id="connectBtn2" class="btn btn-ghost">Connect wallet</button>
     </div>
     <div class="stats" id="stats"></div>
@@ -117,11 +116,11 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
   <section id="how">
     <h2>One trustless loop</h2>
-    <p class="sub">Three steps. One question: can anyone break it before your users do?</p>
+    <p class="sub">Trust is the bug. Falsify is the patch.</p>
     <div class="grid3">
-      <div class="card"><div class="step">01 · Stake</div><h3>Put money on your claim</h3><p>State a claim, stake a bounty. If you're wrong, someone gets paid to prove it.</p></div>
-      <div class="card"><div class="step">02 · Attack</div><h3>Attackers try to break it</h3><p>AI hunts for counterexamples. Wrong guesses earn nothing.</p></div>
-      <div class="card"><div class="step">03 · Settle</div><h3>Only a real break pays</h3><p>A machine check decides: if they break it, they take the bounty. If it survives, you keep it.</p></div>
+      <div class="card"><div class="step">01 · Stake</div><h3>Put skin in the game</h3><p>State your claim. Stake the bounty. Being wrong gets expensive.</p></div>
+      <div class="card"><div class="step">02 · Attack</div><h3>Prove me wrong</h3><p>Attackers hunt for the break. Bad guesses pay nothing.</p></div>
+      <div class="card"><div class="step">03 · Settle</div><h3>Code decides</h3><p>A deterministic check settles it. No human, no LLM, no appeals.</p></div>
     </div>
   </section>
 
@@ -155,7 +154,7 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
   <section id="evidence"><h2>Evidence</h2><p class="sub">Assertion → counterexample → deterministic verdict, persisted to Firestore.</p><div id="evidenceList"></div></section>
 </main>
 
-<footer><div class="wrap">Falsify is a prototype for the Build with Gemini XPRIZE — not a security audit and not a guarantee that a surviving claim is correct. A surviving assertion only means the committed test did not fail against the submitted counterexamples.</div></footer>
+<footer><div class="wrap"><strong>Don't trust. Falsify.</strong> — A surviving claim only means the committed test did not fail against the submitted attacks. Falsify is not an audit and not a guarantee of correctness.</div></footer>
 
 <script src="/app.js"></script>
 </body>
