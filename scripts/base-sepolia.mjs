@@ -5,7 +5,7 @@
 import { execFileSync } from "node:child_process";
 
 const RPC = process.env.BASE_SEPOLIA_RPC ?? "https://sepolia.base.org";
-const KEY = process.env.BASE_SEPOLIA_PRIVATE_KEY;
+const KEY = (process.env.eth_private_key ?? process.env.BASE_SEPOLIA_PRIVATE_KEY)?.trim();
 if (!KEY) {
   console.error("BASE_SEPOLIA_PRIVATE_KEY is required");
   process.exit(2);
