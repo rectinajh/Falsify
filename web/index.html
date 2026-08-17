@@ -90,6 +90,7 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
   <div class="wrap bar">
     <a class="brand" href="#top"><span class="logo">F</span><span class="nm">Falsify</span></a>
     <nav class="nav">
+      <a href="#problem">The problem</a>
       <a href="#how">How it works</a>
       <a href="#who">Who it's for</a>
       <a href="#why">Why Falsify</a>
@@ -112,13 +113,27 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
   <section class="hero fade">
     <span class="eyebrow">Don't trust. Falsify.</span>
     <h1>Every claim is guilty<br><span class="grad">until it's falsified.</span></h1>
-    <p class="lead">AI mints code, data, and claims faster than anyone can audit them. Falsify puts a
-    bounty on your claim — break it, take the money. Survive it, and it was never just faith.</p>
+    <p class="lead">AI mints answers, code, and data faster than anyone can verify them. Falsify puts a
+    bounty on the claim — break it, take the money. Survive it, and it was never just faith.</p>
     <div class="cta">
       <a class="btn btn-primary" href="#publish">Put a bounty on it</a>
       <button id="connectBtn2" class="btn btn-ghost">Connect wallet</button>
     </div>
     <div class="stats" id="stats"></div>
+  </section>
+
+  <section id="problem">
+    <h2>The problem</h2>
+    <p class="sub">AI now answers everything — code, data, decisions, reports. Nothing verifies whether the answer is actually true.</p>
+    <div class="grid3">
+      <div class="card"><div class="step" style="color:var(--red)">Unverified</div><h3>You got an answer. Was it right?</h3><p>AI produces confident output with no proof. The cost of a wrong answer lands on you, not the model.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">Uncheckable</div><h3>You can't hand-check at AI scale</h3><p>The volume is too high. You cannot manually verify everything the model produces.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Recursive</div><h3>Another AI is not the answer</h3><p>Verifying AI with AI is recursion — you'd just be trusting a second unverified opinion.</p></div>
+    </div>
+    <div class="panel" style="margin-top:1rem;text-align:center">
+      <strong style="font-size:1.15rem">Don't verify with technology. Verify with incentives and rules.</strong>
+      <p class="muted" style="margin:.5rem 0 0">Falsify puts a bounty on the claim. People are paid only when a deterministic test actually breaks it. Survival is proof — not another model's opinion.</p>
+    </div>
   </section>
 
   <section id="how">
@@ -133,25 +148,25 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
   <section id="who">
     <h2>Who it's for</h2>
-    <p class="sub">If you ship code, data, or AI output — someone should get paid to break it before your users do.</p>
+    <p class="sub">If you use AI output, or ship it, you need a way to know it's actually right.</p>
     <div class="grid3">
-      <div class="card"><div class="step">Smart contracts</div><h3>Ship without the $50k audit</h3><p>Green tests prove nothing. Put a bounty on your contract and let attackers find the bug first.</p></div>
-      <div class="card"><div class="step">Data & AI teams</div><h3>Prove the pipeline, or pay up</h3><p>Your model says "correct". Back it with a bounty — if a counterexample breaks it, you just bought the cheapest bug report.</p></div>
-      <div class="card"><div class="step">Independent builders</div><h3>Security without the enterprise plan</h3><p>No retainer, no weeks of waiting. Stake a bounty tonight and get attacked by dawn.</p></div>
+      <div class="card"><div class="step">You use AI</div><h3>Verify what you rely on</h3><p>AI wrote the answer, the code, the report. Put a bounty on it — if someone breaks it, you found the flaw before it cost you.</p></div>
+      <div class="card"><div class="step">You ship AI</div><h3>Make hallucination cheap to catch</h3><p>Your product generates answers. Every wrong one is a liability. Pay a market to attack it — and pay only for real breaks.</p></div>
+      <div class="card"><div class="step">You decide on AI</div><h3>Act on claims you've tested</h3><p>You make decisions from AI output. A claim that survived a bounty beats one nobody attacked.</p></div>
     </div>
   </section>
 
   <section id="why">
     <h2>Why Falsify</h2>
-    <p class="sub">Audits cost thousands and end in a PDF. Falsify is a market where the payout is decided by a test, not a reputation.</p>
+    <p class="sub">Other approaches trust an opinion. Falsify trusts a broken test.</p>
     <div class="panel">
       <table>
-        <thead><tr><th></th><th>Falsify</th><th>Security audit</th><th>Bug bounty</th></tr></thead>
+        <thead><tr><th></th><th>Falsify</th><th>Another AI</th><th>Manual review</th></tr></thead>
         <tbody>
-          <tr><td>Cost</td><td><strong>$20–$2k bounty</strong></td><td>$5k–$50k</td><td>$500+ setup</td></tr>
-          <tr><td>Time to result</td><td><strong>minutes</strong></td><td>weeks</td><td>days–months</td></tr>
-          <tr><td>Who decides payout</td><td><strong>deterministic test</strong></td><td>human judgment</td><td>human triage</td></tr>
-          <tr><td>Accountability</td><td><strong>on-chain, immutable</strong></td><td>PDF report</td><td>platform rules</td></tr>
+          <tr><td>How it verifies</td><td><strong>a test breaks the claim</strong></td><td>a model's opinion</td><td>a human's judgment</td></tr>
+          <tr><td>Trust anchor</td><td><strong>deterministic rules</strong></td><td>another unverified model</td><td>one person's view</td></tr>
+          <tr><td>Scales to AI volume</td><td><strong>yes</strong></td><td>yes</td><td>no</td></tr>
+          <tr><td>Incentive to find flaws</td><td><strong>paid to break</strong></td><td>none</td><td>salary</td></tr>
         </tbody>
       </table>
     </div>
