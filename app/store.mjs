@@ -70,7 +70,7 @@ export async function hydrate() {
   load();
 }
 
-export function createAssertion({ assertion, claimType, bounty, currency, customer }) {
+export function createAssertion({ assertion, claimType, bounty, currency, customer, signature }) {
   const id = state.nextAssertionId++;
   const rec = {
     id,
@@ -79,6 +79,7 @@ export function createAssertion({ assertion, claimType, bounty, currency, custom
     bounty: Number(bounty) || 0,
     currency: currency === "USDC" ? "USDC" : "ETH",
     customer: customer ?? "0xcustomer",
+    signature: signature ?? null,
     status: "open",
     createdAt: new Date().toISOString(),
     deadline: null,

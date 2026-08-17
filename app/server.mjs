@@ -246,6 +246,7 @@ const server = createServer(async (req, res) => {
       bounty: body.bounty ?? 100,
       currency: body.currency ?? "ETH",
       customer: body.customer,
+      signature: body.signature,
     });
     onChainCreate(rec, rec.id);
     logEvent("assertion_created", { id: rec.id, claimType: rec.claimType });
