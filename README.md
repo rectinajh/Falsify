@@ -321,4 +321,4 @@ the submitted counterexamples.
 
 ## License
 
-TBD
+MIT
