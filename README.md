@@ -68,7 +68,7 @@ LLM.
 - Payment is triggered by a **machine-checkable counterexample** (the committed test
   fails), not by a human's subjective severity rating.
 - Agents are **adversaries paid to break** a claim, not reviewers paid to approve it.
-- Invalid counterexamples are punished on-chain (`falseContributionClaim`), so
+- Invalid counterexamples are punished on-chain (`falseClaimRate` reputation), so
   noise-making is not free.
 
 ## Business value
@@ -88,11 +88,11 @@ LLM.
 | Layer | Technology |
 |---|---|
 | Orchestration & counterexample generation | Gemini (structured output + tool calling) |
-| Deterministic verification | Google Cloud Build |
-| Backend & evidence store | Cloud Run + Firestore |
+| Deterministic verification | Foundry (`forge test`) in the Cloud Run image |
+| Backend & evidence store | Cloud Run + Firestore (persistent) |
 | Agent identity / reputation / validation | ERC-8004 (Draft) |
 | HTTP-native payment | x402 V2 |
-| Autonomous USDC settlement | Circle Agent Stack |
+| On-chain USDC settlement | `FalsifySettlement` on Base Sepolia (Circle testnet USDC) |
 
 ## XPRIZE fit
 
@@ -110,9 +110,9 @@ LLM.
 | >=1 Google Cloud product | Cloud Run, Cloud Build, Firestore |
 | A working product | deployable falsify loop: publish -> attack -> verify -> settle |
 | AI agent performs a valuable operation/decision | adversarial agents generate attacks; a deterministic verifier decides payout |
-| Real user evidence | a bounty customer with a real escrowed bounty |
+| Real user evidence | testnet USDC settlement on Base Sepolia (verifiable); real customer revenue pending |
 | Honest revenue/expense disclosure | success fee, platform fee, and P&L are logged |
-| Agent execution logs, API records, screenshots | Firestore evidence, Gemini call logs, Cloud Build outputs |
+| Agent execution logs, API records, screenshots | Firestore-persisted evidence, Gemini call logs, tx hashes |
 | Code repo, <=3-min video, 500-1000 word statement | delivered as part of the submission |
 | Disclose reused templates/frameworks | ERC-8004 (Draft), x402 V2, OpenZeppelin, Foundry |
 
@@ -129,11 +129,18 @@ LLM.
 - `[implemented + smoke-tested]` `scripts/x402-server.mjs`: HTTP 402 paymentPayload with
   Falsify `extensions`, then proof verification. Real USDC transfer + Coinbase x402
   verifier are `[not verified]`.
-- `[not verified]` Circle Agent Stack, real mainnet USDC settlement.
+- `[implemented + verified]` Firestore persistence: `FIRESTORE=true` mirrors state to
+  Firestore and hydrates it on cold start; evidence survives Cloud Run instance
+  scale-to-zero (verified across a forced revision deploy).
+- `[implemented + verified]` Base Sepolia testnet USDC settlement: full loop
+  (deploy -> register agent -> escrow 1 Circle USDC -> submit counterexample -> settle)
+  broadcast on Base Sepolia with 5 transactions verifiable on Basescan (see below).
 - `[satisfied by Cloud Run]` the ">=1 Google Cloud product" mandatory requirement is met
   by deploying to Cloud Run (see Deploy section). The Gemini key is injected from Secret
   Manager.
-- `[needs external users]` Real bounty customers and a real mainnet USDC settlement.
+- `[needs external users]` Real bounty customers and real revenue (the Base Sepolia
+  settlement is testnet evidence, not mainnet revenue). Circle Agent Stack and real
+  mainnet USDC are `[not verified]`.
 
 ## Run locally
 
@@ -176,6 +183,25 @@ With those env vars set, publishing escrows the bounty on-chain (`createAssertio
 `FALSIFIED` verdict broadcasts `submitCounterexample` + `settle` via `cast`, recording the
 real transaction hash in the Settlements view.
 
+### Real USDC settlement on Base Sepolia (testnet)
+
+`scripts/base-sepolia.mjs` runs the full settlement loop on Base Sepolia using Circle
+testnet USDC (`0x036CbD53842c5426634e7929541eC2318f3dCF7e`, 6 decimals). With a funded
+wallet in `.env` (`BASE_SEPOLIA_PRIVATE_KEY` or `eth_private_key`), run:
+
+```bash
+node --env-file=.env scripts/base-sepolia.mjs
+```
+
+Verified run (2026-08-18), all clickable on Basescan:
+
+- Settlement contract: `0x8A8D11cFb79F3c38f4961de49B914a8FF23De56C`
+- Settle (FALSIFIED): `0xca0aea8b5be351c266a59fd3167e0b55ac3dd3cdc5f2bf26c0b40dc64af03c6e`
+- Escrow 1 USDC: `0xa0150e5cdbb25f99ac9baee5d1048100462151f8d7fd225d279e2a9c0a5817fa`
+
+After settlement the contract USDC balance is `0` (0.85 paid to the finder, 0.15 platform
+fee). This is testnet evidence of the mechanism, not a real-revenue claim.
+
 ## Deploy to Google Cloud Run
 
 Cloud Run hosts the full product (web UI + API + `forge test` verifier, via the Foundry
@@ -186,13 +212,20 @@ injected from Secret Manager, never baked into the image.
 # 1. Store the Gemini key as a Secret Manager secret (one-time)
 printf '%s' "$GEMINI_API_KEY" | gcloud secrets create GEMINI_API_KEY --data-file=-
 
-# 2. Build + deploy in one step
+# 2. Enable Firestore + create a database + grant the service account (one-time)
+gcloud services enable firestore.googleapis.com
+gcloud firestore databases create --location=us-central1
+gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \
+  --member="serviceAccount:$GOOGLE_CLOUD_PROJECT-compute@developer.gserviceaccount.com" \
+  --role="roles/datastore.user"
+
+# 3. Build + deploy (FIRESTORE=true persists evidence across cold starts)
 gcloud run deploy falsify \
   --source . \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars=GEMINI_MODEL=gemini-3.6-flash \
+  --set-env-vars=GEMINI_MODEL=gemini-3.6-flash,FIRESTORE=true \
   --set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest
 ```
 
@@ -202,10 +235,10 @@ app reads `PORT`/`GEMINI_API_KEY` from the environment. `.dockerignore` keeps `.
 `gcloud builds submit --config=cloudbuild.yaml .` for a Cloud Build pipeline (requires an
 Artifact Registry repo named `falsify`).
 
-Note: Cloud Run's filesystem is ephemeral, so `data/` (store + evidence) resets between
-instances. For a persistent evidence store, swap the JSON files for Firestore (a second
-Google Cloud product) — not required to meet the minimum, but useful for a longer-lived
-demo.
+The Dockerfile installs Foundry from a pinned GitHub release (the
+`foundry.paradigm.xyz` installer is rate-limited). With `FIRESTORE=true`, the app mirrors
+state to a `state/main` Firestore document and hydrates it on cold start, so evidence
+survives instance scale-to-zero. Locally (no `FIRESTORE`) it falls back to `data/*.json`.
 
 ### Optional Vercel slice (not required)
 
@@ -239,8 +272,11 @@ scripts/demo.mjs                # run verification for the Math counterexample
 scripts/settle.mjs              # verdict -> on-chain settle bridge
 scripts/x402-server.mjs         # x402 HTTP 402 reference server
 scripts/dev-chain.mjs           # anvil + deploy + register agent (on-chain settle)
+scripts/base-sepolia.mjs        # Base Sepolia real USDC settlement (Circle testnet USDC)
+package.json                    # @google-cloud/firestore dependency
 Dockerfile                      # node + foundry (Cloud Run image)
 .dockerignore                   # keep .env / data / out / cache out of the image
+.gcloudignore                   # keep local files out of the Cloud Run source upload
 cloudbuild.yaml                 # Cloud Build -> Artifact Registry -> Cloud Run
 ```
 
