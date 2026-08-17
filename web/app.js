@@ -94,9 +94,10 @@ function renderWallet() {
     btn2.textContent = "Wallet connected";
     info.style.display = "flex";
     addr.textContent = short(state.account);
-    addr.title = state.account;
     const bal = state.balances;
-    if (bal) addr.textContent = `${short(state.account)} · ${bal.eth.toFixed(4)} ETH · ${bal.usdc.toFixed(2)} USDC`;
+    addr.title = bal
+      ? `${state.account}\n${bal.eth.toFixed(4)} ETH · ${bal.usdc.toFixed(2)} USDC`
+      : state.account;
   } else {
     btn.style.display = "";
     btn2.textContent = "Connect wallet";

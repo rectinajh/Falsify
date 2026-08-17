@@ -19,7 +19,7 @@ header{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rg
 .nav{display:flex;gap:.25rem;flex-wrap:wrap}
 .nav a{color:var(--muted);text-decoration:none;padding:.45rem .75rem;border-radius:8px;font-size:.88rem}
 .nav a:hover{color:var(--text);background:var(--panel)}
-.btn{font:inherit;cursor:pointer;border-radius:10px;padding:.6rem 1rem;font-weight:600;border:1px solid transparent;transition:.15s}
+.btn{font:inherit;cursor:pointer;border-radius:10px;padding:.6rem 1rem;font-weight:600;border:1px solid transparent;transition:.15s;white-space:nowrap}
 .btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 4px 18px rgba(99,102,241,.4)}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,102,241,.55)}
 .btn-ghost{background:var(--panel);border-color:var(--border);color:var(--text)}
@@ -27,6 +27,7 @@ header{position:sticky;top:0;z-index:10;backdrop-filter:blur(12px);background:rg
 .btn:disabled{opacity:.5;cursor:wait;transform:none}
 .wallet{display:flex;align-items:center;gap:.55rem}
 .wallet .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.wallet .mono{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .hero{padding:5rem 0 4rem;text-align:center}
 .eyebrow{display:inline-block;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);border:1px solid rgba(34,211,238,.25);background:rgba(34,211,238,.06);padding:.3rem .8rem;border-radius:999px;margin-bottom:1.3rem}
@@ -45,7 +46,7 @@ h2{font-size:1.5rem;letter-spacing:-.02em;margin:0 0 .4rem}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.4rem;backdrop-filter:blur(6px)}
 .step{font-size:.78rem;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
 .card h3{margin:.5rem 0 .4rem;font-size:1.1rem}
-.card p{margin:0;color:var(--muted);font-size:.92rem}
+.card p{margin:0;color:var(--muted);font-size:.9rem;line-height:1.5}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:1.4rem;margin-bottom:1rem;backdrop-filter:blur(6px)}
 .panel h2{margin:0 0 1rem;font-size:1.15rem}
 label{display:block;margin:.8rem 0 .3rem;font-weight:600;font-size:.86rem;color:var(--muted)}
@@ -96,15 +97,10 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
   <div class="wrap bar">
     <a class="brand" href="#top"><span class="logo">F</span><span class="nm">Falsify</span></a>
     <nav class="nav">
-      <a href="#problem">The problem</a>
       <a href="#how">How it works</a>
-      <a href="#who">Who it's for</a>
       <a href="#why">Why Falsify</a>
       <a href="#pricing">Pricing</a>
       <a href="#publish">Publish</a>
-      <a href="#assertions">Assertions</a>
-      <a href="#reputation">Reputation</a>
-      <a href="#settlements">Settlements</a>
     </nav>
     <div class="wallet">
       <button id="connectBtn" class="btn btn-primary">Connect wallet</button>
@@ -120,8 +116,7 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
   <section class="hero fade">
     <span class="eyebrow">Don't trust. Falsify.</span>
     <h1>Every claim is guilty<br><span class="grad">until it's falsified.</span></h1>
-    <p class="lead">AI mints answers, code, and data faster than anyone can verify them. Falsify puts a
-    bounty on the claim — break it, take the money. Survive it, and it was never just faith.</p>
+    <p class="lead">AI mints claims faster than anyone can verify them. Falsify pays attackers to break yours — survive it, and it was never just faith.</p>
     <div class="cta">
       <a class="btn btn-primary" href="#publish">Put a bounty on it</a>
       <button id="connectBtn2" class="btn btn-ghost">Connect wallet</button>
@@ -131,11 +126,11 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
 
   <section id="problem">
     <h2>The problem</h2>
-    <p class="sub">AI now answers everything — code, data, decisions, reports. Nothing verifies whether the answer is actually true.</p>
+    <p class="sub">AI now answers everything. Nothing verifies the answer.</p>
     <div class="grid3">
-      <div class="card"><div class="step" style="color:var(--red)">Unverified</div><h3>You got an answer. Was it right?</h3><p>AI produces confident output with no proof. The cost of a wrong answer lands on you, not the model.</p></div>
-      <div class="card"><div class="step" style="color:var(--red)">Uncheckable</div><h3>You can't hand-check at AI scale</h3><p>The volume is too high. You cannot manually verify everything the model produces.</p></div>
-      <div class="card"><div class="step" style="color:var(--amber)">Recursive</div><h3>Another AI is not the answer</h3><p>Verifying AI with AI is recursion — you'd just be trusting a second unverified opinion.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">Unverified</div><h3>You got an answer. Was it right?</h3><p>Confident output, no proof. The cost lands on you.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">Uncheckable</div><h3>Too much to hand-check</h3><p>AI scale beats human review.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Recursive</div><h3>Another AI isn't the answer</h3><p>AI checking AI is recursion.</p></div>
     </div>
     <div class="panel" style="margin-top:1rem;text-align:center">
       <strong style="font-size:1.15rem">Don't verify with technology. Verify with incentives and rules.</strong>
@@ -171,9 +166,9 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
     <h2>Who it's for</h2>
     <p class="sub">If you use AI output, or ship it, you need a way to know it's actually right.</p>
     <div class="grid3">
-      <div class="card"><div class="step">You use AI</div><h3>Verify what you rely on</h3><p>AI wrote the answer, the code, the report. Put a bounty on it — if someone breaks it, you found the flaw before it cost you.</p></div>
-      <div class="card"><div class="step">You ship AI</div><h3>Make hallucination cheap to catch</h3><p>Your product generates answers. Every wrong one is a liability. Pay a market to attack it — and pay only for real breaks.</p></div>
-      <div class="card"><div class="step">You decide on AI</div><h3>Act on claims you've tested</h3><p>You make decisions from AI output. A claim that survived a bounty beats one nobody attacked.</p></div>
+      <div class="card"><div class="step">You use AI</div><h3>Verify what you rely on</h3><p>Put a bounty on it. A break now beats a failure later.</p></div>
+      <div class="card"><div class="step">You ship AI</div><h3>Catch hallucination cheaply</h3><p>Pay attackers — only for real breaks.</p></div>
+      <div class="card"><div class="step">You decide on AI</div><h3>Act on tested claims</h3><p>A claim that survived a bounty beats one nobody attacked.</p></div>
     </div>
   </section>
 
@@ -197,9 +192,9 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
     <h2>Proven in the wild</h2>
     <p class="sub">Real breaks, settled by the deterministic verifier.</p>
     <div class="grid3">
-      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Math.add(a,b)</h3><p>Claimed to always sum. Gemini found <span class="mono">a=1, b=1</span> — the contract returns <span class="mono">0</span>. Bounty paid.</p></div>
-      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Vault.withdraw()</h3><p>Claimed reentrancy-safe. The deterministic harness drained <span class="mono">11 ETH</span>. Bounty paid.</p></div>
-      <div class="card"><div class="step" style="color:var(--green)">SURVIVED</div><h3>Your next claim</h3><p>Publish it. If nobody breaks it, you keep the bounty and the proof.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Math.add(a,b)</h3><p>Claimed to sum. Gemini found <span class="mono">a=1,b=1</span> → returns <span class="mono">0</span>.</p></div>
+      <div class="card"><div class="step" style="color:var(--red)">FALSIFIED</div><h3>Vault.withdraw()</h3><p>Claimed reentrancy-safe. The harness drained <span class="mono">11 ETH</span>.</p></div>
+      <div class="card"><div class="step" style="color:var(--green)">SURVIVED</div><h3>Your next claim</h3><p>Survive it, keep the bounty and the proof.</p></div>
     </div>
   </section>
 
@@ -207,9 +202,9 @@ footer{border-top:1px solid var(--border);margin-top:3rem;padding:2rem 0;color:v
     <h2>Pricing</h2>
     <p class="sub">Pay only when a claim actually breaks. The bounty stays yours until it's falsified.</p>
     <div class="grid3">
-      <div class="card"><div class="step">Per bounty</div><h3>15% on settled bounties</h3><p>Stake any amount. Survive — you keep the bounty. Break — the finder takes 85%, Falsify takes 15%.</p></div>
-      <div class="card"><div class="step" style="color:var(--amber)">Continuous · soon</div><h3>Every deploy gets attacked</h3><p>Subscription that auto-bounties each new claim. Recurring adversarial testing for teams that ship constantly.</p></div>
-      <div class="card"><div class="step" style="color:var(--amber)">Volume · soon</div><h3>Enterprise-scale verification</h3><p>Bulk bounties, custom verifiers, and SLA-backed settlement for large AI pipelines.</p></div>
+      <div class="card"><div class="step">Per bounty</div><h3>15% on settled bounties</h3><p>Survive, keep the bounty. Break, finder takes 85%.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Continuous · soon</div><h3>Every deploy gets attacked</h3><p>Auto-bounty each new claim.</p></div>
+      <div class="card"><div class="step" style="color:var(--amber)">Volume · soon</div><h3>Enterprise scale</h3><p>Bulk bounties, custom verifiers.</p></div>
     </div>
   </section>
 
