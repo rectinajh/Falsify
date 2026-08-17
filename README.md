@@ -142,25 +142,39 @@ LLM.
 cp .env.example .env
 # edit .env: GEMINI_API_KEY=...
 
-# 2. Start the orchestrator + web UI + evidence store
+# 2. Start the product (web UI + API + evidence store)
 node --env-file=.env app/server.mjs
-# open http://localhost:8080
+# open http://localhost:8080  -> Dashboard / Publish / Assertions / Reputation / Settlements / Evidence
 
-# 3. Run a falsification from the UI, or hit the API directly
-curl -s -X POST localhost:8080/api/falsify \
+# 3. Publish + falsify from the UI, or via the API
+curl -s -X POST localhost:8080/api/assertions \
   -H 'Content-Type: application/json' \
-  -d '{"claimType":"correctness","assertion":"Math.add(a,b) returns a+b for all a,b"}'
-curl -s -X POST localhost:8080/api/falsify \
-  -H 'Content-Type: application/json' \
-  -d '{"claimType":"security","assertion":"withdraw() is reentrancy-safe"}'
+  -d '{"assertion":"Math.add(a,b) returns a+b for all a,b","claimType":"correctness","bounty":100}'
+curl -s -X POST localhost:8080/api/assertions/1/falsify
 
 # 4. Inspect the recorded evidence and execution logs
+cat data/store.json
 cat data/evidence.jsonl
 cat data/logs.jsonl
 ```
 
-`data/` is gitignored runtime evidence: `evidence.jsonl` (assertion -> counterexample ->
-deterministic verdict) and `logs.jsonl` (agent execution + Gemini API call records).
+`data/` is gitignored runtime state: `store.json` (assertions, counterexamples, verdicts,
+settlements, reputation), `evidence.jsonl` (assertion -> counterexample -> deterministic
+verdict), and `logs.jsonl` (agent execution + Gemini API call records).
+
+### Settle on a local chain (real transactions)
+
+By default settlement is recorded but not broadcast ("simulated, no chain"). To make the
+settlement a real on-chain transaction, start a local chain + deploy the contracts:
+
+```bash
+source <(node scripts/dev-chain.mjs)   # starts anvil, deploys, registers agent 1
+node --env-file=.env app/server.mjs     # now picks up RPC_URL / VALIDATOR_KEY / SETTLEMENT_ADDRESS
+```
+
+With those env vars set, publishing escrows the bounty on-chain (`createAssertion`) and a
+`FALSIFIED` verdict broadcasts `submitCounterexample` + `settle` via `cast`, recording the
+real transaction hash in the Settlements view.
 
 ## Deploy the frontend to Vercel
 
@@ -196,7 +210,9 @@ src/interfaces/IERC20.sol      # minimal ERC-20 (USDC)
 src/mocks/                      # local ERC-8004 + USDC mocks
 test/                           # Foundry tests (settlement, math, reentrancy)
 app/server.mjs                  # orchestrator + web UI + evidence store
+app/store.mjs                   # persistent store (assertions/verdicts/settlements/reputation)
 web/index.html                  # static frontend (Vercel)
+web/app.js                      # frontend logic
 api/falsify.js                  # Vercel serverless: Gemini + pure-JS verifier
 api/health.js                   # Vercel health check
 vercel.json                     # Vercel static + functions routing
@@ -205,6 +221,7 @@ scripts/verify.mjs              # deterministic verifier -> verdict.json
 scripts/demo.mjs                # run verification for the Math counterexample
 scripts/settle.mjs              # verdict -> on-chain settle bridge
 scripts/x402-server.mjs         # x402 HTTP 402 reference server
+scripts/dev-chain.mjs           # anvil + deploy + register agent (on-chain settle)
 Dockerfile                      # node + foundry (for any container host; not used by Vercel)
 ```
 
