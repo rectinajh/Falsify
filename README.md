@@ -129,8 +129,10 @@ LLM.
 - `[implemented + smoke-tested]` `scripts/x402-server.mjs`: HTTP 402 paymentPayload with
   Falsify `extensions`, then proof verification. Real USDC transfer + Coinbase x402
   verifier are `[not verified]`.
-- `[not verified]` Google Cloud (Cloud Run / Build / Firestore), Circle Agent Stack, real
-  mainnet USDC settlement.
+- `[not verified]` Circle Agent Stack, real mainnet USDC settlement.
+- `[gap]` ">=1 Google Cloud product" mandatory requirement is not yet satisfied by the
+  Vercel-only path. Easiest fixes: Firestore for the evidence store, or Gemini via
+  Vertex AI. See note in the Deploy section.
 - `[needs external users]` Real bounty customers and a real mainnet USDC settlement.
 
 ## Run locally
@@ -160,18 +162,25 @@ cat data/logs.jsonl
 `data/` is gitignored runtime evidence: `evidence.jsonl` (assertion -> counterexample ->
 deterministic verdict) and `logs.jsonl` (agent execution + Gemini API call records).
 
-## Deploy to Google Cloud Run
+## Deploy the frontend to Vercel
+
+The Vercel slice is the static frontend (`web/`) plus a serverless API (`api/falsify.js`)
+that calls Gemini and runs a deterministic pure-JS verifier for the correctness path.
 
 ```bash
-# create the Secret Manager secret for the Gemini key
-printf '%s' "$GEMINI_API_KEY" | gcloud secrets create GEMINI_API_KEY --data-file=-
-
-# build + deploy (uses Dockerfile + cloudbuild.yaml)
-gcloud builds submit --config=cloudbuild.yaml .
+vercel          # link + deploy; set GEMINI_API_KEY as an Environment Variable
 ```
 
-The image includes Foundry (`forge test` is the deterministic verifier). Gemini key is
-injected from Secret Manager, not baked into the image.
+`vercel.json` wires `web/**` as static files and `api/**/*.js` as serverless functions.
+The Solidity/security path and on-chain settlement are NOT in the Vercel slice: Vercel
+serverless cannot run `forge test`, so those run in the local backend
+(`app/server.mjs`).
+
+> Mandatory-requirement note: the rules require at least one Google Cloud product. A
+> Vercel-only deploy does not satisfy that by itself. The lowest-effort honest fix is to
+> write the evidence/log lines to Firestore (a Google Cloud product) instead of local
+> `data/` files, or to call Gemini through Vertex AI. This is intentionally left as a
+> pending decision rather than faked as done.
 
 ## Repo layout
 
@@ -187,13 +196,16 @@ src/interfaces/IERC20.sol      # minimal ERC-20 (USDC)
 src/mocks/                      # local ERC-8004 + USDC mocks
 test/                           # Foundry tests (settlement, math, reentrancy)
 app/server.mjs                  # orchestrator + web UI + evidence store
+web/index.html                  # static frontend (Vercel)
+api/falsify.js                  # Vercel serverless: Gemini + pure-JS verifier
+api/health.js                   # Vercel health check
+vercel.json                     # Vercel static + functions routing
 scripts/adversary.mjs           # Gemini correctness counterexample generator
 scripts/verify.mjs              # deterministic verifier -> verdict.json
 scripts/demo.mjs                # run verification for the Math counterexample
 scripts/settle.mjs              # verdict -> on-chain settle bridge
 scripts/x402-server.mjs         # x402 HTTP 402 reference server
-Dockerfile                      # node + foundry (Cloud Run image)
-cloudbuild.yaml                 # GCP Cloud Build -> Cloud Run
+Dockerfile                      # node + foundry (for any container host; not used by Vercel)
 ```
 
 ## Disclaimer

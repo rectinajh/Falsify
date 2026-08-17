@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Falsify</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:820px;margin:2rem auto;padding:0 1rem;color:#111}
+h1{margin-bottom:.25rem}.muted{color:#666}
+.card{border:1px solid #ddd;border-radius:10px;padding:1.2rem;margin:1rem 0}
+label{display:block;margin:.6rem 0 .25rem;font-weight:600}
+select,textarea{width:100%;box-sizing:border-box;padding:.6rem;font:inherit;border:1px solid #ccc;border-radius:6px}
+button{background:#111;color:#fff;border:0;padding:.65rem 1.1rem;border-radius:6px;cursor:pointer;font:inherit}
+button:disabled{opacity:.5;cursor:wait}
+.verdict{font-size:1.4rem;font-weight:700;padding:.6rem;border-radius:8px;margin:.8rem 0}
+.FALSIFIED{background:#fdecea;color:#b3261e}
+.NOT_FALSIFIED{background:#e8f5e9;color:#1e7d32}
+pre{background:#f6f6f6;padding:.8rem;border-radius:8px;overflow:auto;font-size:.85rem}
+code{background:#f4f4f4;padding:.1rem .3rem;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>Falsify</h1>
+<div class="muted">Pay agents to falsify claims. What survives is worth the settlement.</div>
+<form id="f" class="card">
+  <label for="claimType">Claim type</label>
+  <select id="claimType">
+    <option value="correctness">Correctness (Gemini counterexample)</option>
+    <option value="security">Security (deterministic attack harness — local forge)</option>
+  </select>
+  <label for="assertion">Assertion</label>
+  <textarea id="assertion" rows="2">add(a, b) returns a + b for all non-negative integers a, b.</textarea>
+  <button type="submit">Run falsification</button>
+</form>
+<div id="out"></div>
+<script>
+const f = document.getElementById("f");
+const out = document.getElementById("out");
+f.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const btn = f.querySelector("button");
+  btn.disabled = true; btn.textContent = "Running...";
+  out.innerHTML = "";
+  try {
+    const res = await fetch("/api/falsify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ claimType: f.claimType.value, assertion: f.assertion.value }),
+    });
+    const d = await res.json();
+    if (d.note) {
+      out.innerHTML = '<div class="card muted">' + d.note + "</div>";
+      return;
+    }
+    const verdict = d.verdict?.result ?? "error";
+    const geminiLine = d.gemini?.called
+      ? "Gemini: <code>" + d.gemini.model + "</code> · counterexample a=" +
+        d.gemini.counterexample?.a + ", b=" + d.gemini.counterexample?.b
+      : "Gemini: not called";
+    out.innerHTML =
+      '<div class="card">' +
+      '<div class="verdict ' + verdict + '">' + verdict + "</div>" +
+      "<div>" + geminiLine + "</div>" +
+      (d.gemini?.reasoning ? '<div class="muted" style="margin-top:.4rem">' + d.gemini.reasoning + "</div>" : "") +
+      "<pre>" + JSON.stringify(d, null, 2) + "</pre>" +
+      "</div>";
+  } catch (e) {
+    out.innerHTML = '<div class="card" style="color:#b3261e">error: ' + e.message + "</div>";
+  } finally {
+    btn.disabled = false; btn.textContent = "Run falsification";
+  }
+});
+</script>
+</body>
+</html>
