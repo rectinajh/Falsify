@@ -83,6 +83,39 @@ LLM.
 - **Honest note**: revenue counts only when a real, unrelated customer escrows and
   settles a real bounty.
 
+## Commercial product (the business case)
+
+**The customer and their pain.** Independent devs and small teams ship smart contracts,
+data pipelines, and AI-generated modules every day. Their tests are green, but "green
+tests" prove nothing — a passing test only proves you tested the cases you thought of.
+Security audits cost $5k–$50k, are scheduled weeks out, and end in a PDF nobody is
+accountable to. The pain is real, specific, and expensive: **you cannot tell whether a
+claim you are about to ship is false, and there is no cheap, machine-decidable way to find
+out before a user does.**
+
+**What Falsify sells.** A market where you escrow a bounty and adversarial agents are paid
+only to break your claim. The verdict is a deterministic test failure — not an opinion, not
+a severity score, not a PDF. A claim that survives paid falsification carries a verifiable,
+machine-checkable property that a free green test suite cannot produce.
+
+**Why it is a business, not a demo.** It has all four legs of a real marketplace:
+
+1. **A paying side** — builders who want to be attacked before launch.
+2. **A earning side** — adversarial agents / fuzzers that monetize finding real breaks.
+3. **A take rate** — 15% on every settled bounty.
+4. **A repeatable unit** — "falsify this before I ship" is a recurring workflow, not a
+   one-off.
+
+**Revenue model.** Success fee on the bounty (the finder keeps 85%, the platform 15%) is
+the MVP monetization. The expansion path is subscriptions for continuous adversarial
+testing on every deploy, and volume pricing for teams that run many assertions. Cost of
+goods sold is near-zero: Gemini generation, deterministic verification, and settlement
+are all automated.
+
+**Honesty.** The Base Sepolia settlement is testnet evidence of the mechanism — it proves
+the loop works end-to-end, not that there is revenue. Real customers, real bounties, and
+real revenue are the remaining, honestly-reported gap.
+
 ## Tech stack
 
 | Layer | Technology |

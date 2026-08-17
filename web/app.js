@@ -1,6 +1,15 @@
 const BASE_SEPOLIA_CHAIN_ID = "0x14a34";
 const BASE_SEPOLIA_NAME = "Base Sepolia";
 const state = { account: null, chainId: null, summary: {}, assertions: [], agents: [], settlements: [], evidence: [] };
+const VERIFIED = {
+  contract: "0x8A8D11cFb79F3c38f4961de49B914a8FF23De56C",
+  usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  settle: "0xca0aea8b5be351c266a59fd3167e0b55ac3dd3cdc5f2bf26c0b40dc64af03c6e",
+  escrow: "0xa0150e5cdbb25f99ac9baee5d1048100462151f8d7fd225d279e2a9c0a5817fa",
+};
+function baseScan(kind, hash) {
+  return `https://sepolia.basescan.org/${kind}/${hash}`;
+}
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -110,12 +119,14 @@ function renderStats() {
 function renderAssertions() {
   const list = state.assertions.slice().reverse();
   if (!list.length) return `<div class="panel"><div class="empty">No assertions yet. Publish the first one above.</div></div>`;
+  const txByAssertion = Object.fromEntries(state.settlements.map((s) => [s.assertionId, s.txHash]).filter(([, h]) => h));
   return list.map((a) => `
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
         <div>
           <div class="muted mono" style="font-size:.8rem">#${a.id} · ${esc(a.claimType)} · ${fmt(a.bounty)} ${esc(a.currency)} · by ${esc(short(a.customer))}</div>
           <div style="margin-top:.35rem;font-weight:600">${esc(a.assertion)}</div>
+          ${txByAssertion[a.id] ? `<div style="margin-top:.45rem"><a class="tx" href="${baseScan("tx", txByAssertion[a.id])}" target="_blank" rel="noopener">View on Basescan ↗</a></div>` : ""}
         </div>
         <div style="display:flex;align-items:center;gap:.6rem">${badge(a.status)}
           <button class="btn btn-ghost" data-falsify="${a.id}" ${a.status === "falsified" ? "disabled" : ""}>Run falsification</button>
@@ -136,12 +147,28 @@ function renderReputation() {
 }
 
 function renderSettlements() {
-  if (!state.settlements.length) return `<div class="panel"><div class="empty">No settlements yet.</div></div>`;
+  const verified = `
+    <div class="panel" style="border-color:rgba(52,211,153,.35);background:linear-gradient(135deg,rgba(52,211,153,.08),rgba(99,102,241,.08))">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div>
+          <div class="step" style="color:var(--green)">Verified on-chain</div>
+          <h3 style="margin:.35rem 0 .2rem">1 USDC falsification settled on Base Sepolia</h3>
+          <div class="muted" style="font-size:.85rem">Circle testnet USDC · deterministic verdict FALSIFIED · 0.85 paid + 0.15 fee</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.45rem">
+          <a class="tx" href="${baseScan("tx", VERIFIED.settle)}" target="_blank" rel="noopener">Settle tx ↗</a>
+          <a class="tx" href="${baseScan("tx", VERIFIED.escrow)}" target="_blank" rel="noopener">Escrow tx ↗</a>
+          <a class="tx" href="${baseScan("address", VERIFIED.contract)}" target="_blank" rel="noopener">Settlement contract ↗</a>
+        </div>
+      </div>
+    </div>`;
   const rows = state.settlements.map((s) => `
     <tr><td class="mono">#${s.assertionId}</td><td>${fmt(s.payout)}</td><td>${fmt(s.fee)}</td>
-    <td>${s.txHash ? `<a class="tx" href="https://sepolia.basescan.org/tx/${esc(s.txHash)}" target="_blank">${esc(s.txHash.slice(0, 12))}…</a>` : `<span class="muted">simulated</span>`}</td></tr>`).join("");
-  return `<div class="panel"><table><thead><tr><th>Assertion</th><th>Payout</th><th>Fee</th><th>Transaction</th></tr></thead><tbody>${rows}</tbody></table>
-    <p class="muted" style="margin:.8rem 0 0;font-size:.84rem">Payout = bounty − 15% platform fee. On-chain tx links open Basescan.</p></div>`;
+    <td>${s.txHash ? `<a class="tx" href="${baseScan("tx", s.txHash)}" target="_blank" rel="noopener">${esc(s.txHash.slice(0, 12))}… ↗</a>` : `<span class="muted">simulated</span>`}</td></tr>`).join("");
+  const table = state.settlements.length
+    ? `<div class="panel"><table><thead><tr><th>Assertion</th><th>Payout</th><th>Fee</th><th>Transaction</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : `<div class="panel"><div class="empty">No app-recorded settlements yet.</div></div>`;
+  return verified + table;
 }
 
 function renderEvidence() {
