@@ -133,6 +133,46 @@ LLM.
   mainnet USDC settlement.
 - `[needs external users]` Real bounty customers and a real mainnet USDC settlement.
 
+## Run locally
+
+```bash
+# 1. Put your Gemini key in .env (never commit it)
+cp .env.example .env
+# edit .env: GEMINI_API_KEY=...
+
+# 2. Start the orchestrator + web UI + evidence store
+node --env-file=.env app/server.mjs
+# open http://localhost:8080
+
+# 3. Run a falsification from the UI, or hit the API directly
+curl -s -X POST localhost:8080/api/falsify \
+  -H 'Content-Type: application/json' \
+  -d '{"claimType":"correctness","assertion":"Math.add(a,b) returns a+b for all a,b"}'
+curl -s -X POST localhost:8080/api/falsify \
+  -H 'Content-Type: application/json' \
+  -d '{"claimType":"security","assertion":"withdraw() is reentrancy-safe"}'
+
+# 4. Inspect the recorded evidence and execution logs
+cat data/evidence.jsonl
+cat data/logs.jsonl
+```
+
+`data/` is gitignored runtime evidence: `evidence.jsonl` (assertion -> counterexample ->
+deterministic verdict) and `logs.jsonl` (agent execution + Gemini API call records).
+
+## Deploy to Google Cloud Run
+
+```bash
+# create the Secret Manager secret for the Gemini key
+printf '%s' "$GEMINI_API_KEY" | gcloud secrets create GEMINI_API_KEY --data-file=-
+
+# build + deploy (uses Dockerfile + cloudbuild.yaml)
+gcloud builds submit --config=cloudbuild.yaml .
+```
+
+The image includes Foundry (`forge test` is the deterministic verifier). Gemini key is
+injected from Secret Manager, not baked into the image.
+
 ## Repo layout
 
 ```text
@@ -146,11 +186,14 @@ src/interfaces/IX402.sol       # x402 payment payload reference types
 src/interfaces/IERC20.sol      # minimal ERC-20 (USDC)
 src/mocks/                      # local ERC-8004 + USDC mocks
 test/                           # Foundry tests (settlement, math, reentrancy)
+app/server.mjs                  # orchestrator + web UI + evidence store
 scripts/adversary.mjs           # Gemini correctness counterexample generator
 scripts/verify.mjs              # deterministic verifier -> verdict.json
 scripts/demo.mjs                # run verification for the Math counterexample
 scripts/settle.mjs              # verdict -> on-chain settle bridge
 scripts/x402-server.mjs         # x402 HTTP 402 reference server
+Dockerfile                      # node + foundry (Cloud Run image)
+cloudbuild.yaml                 # GCP Cloud Build -> Cloud Run
 ```
 
 ## Disclaimer

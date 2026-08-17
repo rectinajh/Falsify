@@ -108,10 +108,13 @@ Prompt 骨架（对手 Agent）：
 
 ## 6. Google Cloud 部署
 
-- **Cloud Run**：Orchestrator + 对手 Agent + 验证触发。
+- **Cloud Run**：`app/server.mjs`（Orchestrator + Web UI + 证据 JSONL），镜像内含 Foundry。
 - **Cloud Build**：在隔离环境运行"已提交测试 + 反例"，输出确定性结果。
 - **Firestore**：论断、反例、判定、结算、声誉快照。
 - **Secret Manager**：Gemini key、Circle/钱包相关密钥。
+
+本地自包含版直接 `node --env-file=.env app/server.mjs`，确定性验证用 `forge test`；
+生产版把该子进程替换为 Cloud Build 步骤。部署见 `cloudbuild.yaml` 与 `Dockerfile`。
 
 ## 7. ERC-8004（Draft）
 
