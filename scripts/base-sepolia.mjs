@@ -74,5 +74,5 @@ const h6 = tx([settlement, "settle(uint256,bytes32,bool)", "1", cexHash, "true"]
 console.log("settle FALSIFIED:", link(h6));
 
 console.log("\nVerification:");
-console.log("  agent USDC balance (should be 850000 = 0.85):", run("cast", ["call", usdc, "balanceOf(address)(uint256)", deployer, "--rpc-url", RPC]));
+console.log("  deployer USDC (agent 0.85 + platform fee 0.15 = 1.00):", run("cast", ["call", usdc, "balanceOf(address)(uint256)", deployer, "--rpc-url", RPC]));
 console.log("  settlement USDC balance (should be 0):", run("cast", ["call", usdc, "balanceOf(address)(uint256)", settlement, "--rpc-url", RPC]));
