@@ -41,12 +41,27 @@ customer publishes assertion + acceptance test + USDC bounty
   -> deterministic verifier (Cloud Build) runs the committed test
   -> test FAILS: counterexample is valid -> bounty paid to the finder
   -> test PASSES: counterexample is invalid -> finder gets $0, reputation marked
-  -> ERC-8004 records identity, validation, and reputation
+  -> ERC-8004 records identity and reputation; x402 is the HTTP payment rail
 ```
 
 A claim is only worth the settlement if it survives paid attempts to falsify it. This is
 Popper's falsifiability applied to the agent economy: **don't trust the claim, pay agents
 to break it.**
+
+### Two counterexample paths (both kept)
+
+Falsify keeps **both** counterexample generators, and the deterministic verifier is the
+single trust root that never changes:
+
+| Path | Generator | What it produces | Gemini's role |
+|---|---|---|---|
+| Correctness / data | Gemini | Inputs where `f(a,b) != expected` | Generates the counterexample |
+| Security / exploit | Deterministic tool (fuzzer / Slither / committed attack harness) | Attack transaction sequences | Only **explains** the failure |
+
+Gemini is deliberately **not** asked to write exploit code: for security claims the
+counterexample comes from a deterministic tool, and Gemini only translates the failing
+test into plain English. In both paths the payout is decided by `forge test`, never by an
+LLM.
 
 ## Why this is not an ordinary bug bounty
 
@@ -103,9 +118,19 @@ to break it.**
 
 ## Status (honest)
 
-- `[not implemented]` All code. This is a design document; nothing is deployed yet.
-- `[not verified]` ERC-8004, x402 V2, Circle Agent Stack, Gemini, and Google Cloud
-  integrations.
+- `[implemented + tested]` `FalsifySettlement.sol`: native-ETH and USDC bounties,
+  ERC-8004 identity-gated counterexamples, reputation write-back, x402
+  proof-of-payment field, replay guard, refunds. Six settlement tests pass
+  (`forge test --match-path test/FalsifySettlement.t.sol`).
+- `[implemented + run]` Correctness path: Gemini generates a `Math` counterexample,
+  deterministic verifier reports `FALSIFIED` (`scripts/adversary.mjs` ->
+  `scripts/demo.mjs`). Security path: committed reentrancy harness, verifier reports
+  `FALSIFIED` (`scripts/verify.mjs`).
+- `[implemented + smoke-tested]` `scripts/x402-server.mjs`: HTTP 402 paymentPayload with
+  Falsify `extensions`, then proof verification. Real USDC transfer + Coinbase x402
+  verifier are `[not verified]`.
+- `[not verified]` Google Cloud (Cloud Run / Build / Firestore), Circle Agent Stack, real
+  mainnet USDC settlement.
 - `[needs external users]` Real bounty customers and a real mainnet USDC settlement.
 
 ## Repo layout
@@ -114,6 +139,18 @@ to break it.**
 README.md
 docs/REQUIREMENTS.md   # product requirements (Chinese)
 docs/TECHNICAL.md      # technical design (Chinese)
+docs/IMPLEMENTATION_SPEC.md  # buildable implementation spec (Chinese)
+src/FalsifySettlement.sol      # on-chain settlement (ERC-8004 + x402 + USDC/ETH)
+src/interfaces/IERC8004.sol    # ERC-8004 identity + reputation interfaces (Draft)
+src/interfaces/IX402.sol       # x402 payment payload reference types
+src/interfaces/IERC20.sol      # minimal ERC-20 (USDC)
+src/mocks/                      # local ERC-8004 + USDC mocks
+test/                           # Foundry tests (settlement, math, reentrancy)
+scripts/adversary.mjs           # Gemini correctness counterexample generator
+scripts/verify.mjs              # deterministic verifier -> verdict.json
+scripts/demo.mjs                # run verification for the Math counterexample
+scripts/settle.mjs              # verdict -> on-chain settle bridge
+scripts/x402-server.mjs         # x402 HTTP 402 reference server
 ```
 
 ## Disclaimer

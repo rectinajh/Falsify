@@ -4,8 +4,17 @@
 
 ## 1. 状态与范围
 
-本仓库当前只有设计文档，没有应用代码。下述模块、接口和合约是**开发契约**，不是
-现有实现。所有集成均为 `[尚未验证]`。
+已实现并通过测试的部分（`forge test` 真实验证）：
+
+- `src/FalsifySettlement.sol`：链上结算，同时支持原生 ETH 与 USDC 赏金、ERC-8004
+  身份门控反例、声誉写回、x402 `proofOfPayment` 字段、防重放与退款。
+- `src/interfaces/IERC8004.sol` + `src/mocks/ERC8004Mock.sol`：ERC-8004 身份/声誉最小
+  接口与本地 mock。
+- `src/interfaces/IX402.sol` + `scripts/x402-server.mjs`：x402 支付 payload 参考实现。
+- 双路径反例：`scripts/adversary.mjs`（Gemini 正确性反例）与
+  `test/FalsifyReentrancy.t.sol`（确定性安全反例）。
+
+仍未验证：Google Cloud、Circle Agent Stack、真实主网 USDC、Coinbase x402 验证器。
 
 目标范围：一条最小可信闭环。
 
@@ -17,6 +26,15 @@
   -> 赏金结算（x402 / Circle）
   -> ERC-8004 声誉写回
 ```
+
+### 双路径（两条都保留）
+
+| 路径 | 反例生成器 | Gemini 的角色 |
+|---|---|---|
+| 正确性 / 数据 | Gemini | 生成反例输入 |
+| 安全 / 漏洞 | 确定性工具（fuzzer / Slither / 已提交攻击夹具） | 只解释失败，不生成 exploit |
+
+两条路径共用同一个确定性验证器（`forge test`），判定与放款从不依赖 LLM。
 
 ## 2. 架构
 
@@ -97,10 +115,11 @@ Prompt 骨架（对手 Agent）：
 
 ## 7. ERC-8004（Draft）
 
-- **Identity Registry**：`agentId`（ERC-721）、metadata（endpoint / x402Support）、
-  `agentWallet`、钱包控制权证明。
-- **Reputation Registry**：`validCounterexamples`、`falseClaimRate`、`wastedCallRate`、
-  `revenueEarned`。
+- **Identity Registry（已接入）**：`agentId`（ERC-721）、`agentURI`、`agentWallet`。
+  结算合约通过 `getAgentWallet(agentId) == msg.sender` 门控反例提交，使声誉不可转让。
+- **Reputation Registry（已接入）**：有效反例写
+  `validCounterexamples`（value=+1），无效反例写 `falseClaimRate`（value=-1），
+  `feedbackHash` 绑定 `counterexampleHash`，声誉与具体反例密码学绑定。
 - **Validation Registry**：`assertionHash`、`testRef`、`counterexampleHash`、
   `validatorAddress`、`validationScore`、`validationEvidenceURI`。
 
@@ -108,16 +127,20 @@ Prompt 骨架（对手 Agent）：
 
 ## 8. x402 V2
 
-- 对手 Agent 提交反例时走 x402 基础费：`402 -> Payment Requirements ->
-  Payment Payload -> Verify -> Settle`。
-- 有效反例的赏金释放是另一次结算。
+- 客户发布论断的赏金托管走 x402：`POST /v1/assertions -> 402 + paymentPayload ->
+  支付 -> X-PAYMENT 重试 -> 验证 -> 生成 proofOfPaymentHash`。
+- 该 `proofOfPaymentHash` 作为 `bytes32` 由 `createAssertionUSDC` 上链，把链下支付
+  与链上托管密码学关联。
 - Falsify 扩展放在 `paymentPayload.extensions`，定位为"基于 x402 V2 extensions 的
   应用层实验协议"，**不是 x402 官方标准**。
 
-示例扩展：
+参考服务器已实现：`scripts/x402-server.mjs`。真实 USDC 转账与 Coinbase x402 验证器
+仍是 `[尚未验证]`。
+
+示例扩展（`extensions.x-falsify-assertion`）：
 
 ```json
-{"extensions":{"falsify-v1":{"info":{"assertionHash":"0x...","testRef":"0x...","bounty":"50000000","validator":"0x..."},"schema":{"type":"object"}}}}
+{"extensions":{"x-falsify-assertion":{"assertionHash":"0x...","testRef":"0x...","bounty":1000000,"deadline":1780000000}}}
 ```
 
 ## 9. Circle Agent Stack
@@ -129,16 +152,21 @@ Prompt 骨架（对手 Agent）：
 
 ## 10. 结算合约最小接口
 
+以下为当前已实现的真实签名（`src/FalsifySettlement.sol`）：
+
 ```solidity
 interface IFalsifySettlement {
-  function createAssertion(bytes32 assertionHash, bytes32 testRef, uint256 bounty, uint256 deadline) external;
-  function submitCounterexample(bytes32 assertionHash, bytes32 counterexampleHash) external;
-  function settle(bytes32 counterexampleHash, uint256 agentId, bool falsified) external;
-  function refund(bytes32 assertionHash) external;
+  function createAssertion(bytes32 assertionHash, bytes32 testRef, uint256 deadline) external payable;
+  function createAssertionUSDC(bytes32 assertionHash, bytes32 testRef, uint256 deadline, uint256 bounty, bytes32 x402PaymentProof) external;
+  function submitCounterexample(uint256 assertionId, bytes32 counterexampleHash, uint256 agentId) external;
+  function settle(uint256 assertionId, bytes32 counterexampleHash, bool falsified) external;
+  function refund(uint256 assertionId) external;
 }
 ```
 
-资金流：USDC 托管与放款走 Circle/x402；合约负责状态记录与防重放；ERC-8004 负责声誉。
+资金流：ETH 托管为 MVP 占位；USDC 走 `transferFrom` 托管、`transfer` 放款；x402
+`proofOfPayment` 上链关联；ERC-8004 负责身份门控与声誉写回。真实主网 USDC 由 Circle
+完成，合约只负责记录、放款逻辑与防重放。
 
 ## 11. 验证算法
 

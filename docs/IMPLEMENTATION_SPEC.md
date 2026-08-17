@@ -6,10 +6,10 @@
 
 ```text
 客户论断 + 属性测试 + USDC 托管
-  -> 3 个对手 Agent（Gemini）生成反例
+  -> 对手 Agent 生成反例（两条路径：Gemini 正确性反例 + 确定性工具安全反例）
   -> Cloud Build 确定性验证
   -> FALSIFIED（赏金释放）/ NOT_FALSIFIED（得 0）
-  -> Circle 放款 + ERC-8004 写回
+  -> x402 上链支付证明 + Circle 放款 + ERC-8004 写回
 ```
 
 ---
@@ -77,6 +77,18 @@
 - `FALSIFIED / NOT_FALSIFIED` 由 Cloud Build 决定，Gemini 无权改变。
 - 无效反例不触发任何付款，仅记录 `falseClaimRate`。
 
+### 1.6 安全类反例不使用 Gemini 生成 exploit
+
+Gemini 会因安全过滤拒绝生成漏洞利用代码。因此 Falsify 采用**双路径**：
+
+| 论断类型 | 反例生成器 | Gemini 角色 |
+|---|---|---|
+| 正确性 / 数据 | Gemini（`scripts/adversary.mjs`） | 生成反例输入 |
+| 安全 / 漏洞 | 确定性工具（fuzzer / Slither / 已提交攻击夹具，如 `src/Attack.sol`） | 只解释失败结果 |
+
+两条路径共用同一个 `forge test` 判定，放款决策永不依赖 LLM。提交文案须按此诚实口径：
+安全反例由确定性工具生成，Gemini 仅解释。
+
 ---
 
 ## 2. Cloud Build 确定性验证器接口
@@ -128,121 +140,40 @@ exitCode != 0  -> 测试失败 -> FALSIFIED
 
 ---
 
-## 3. Solidity 结算合约字段
+## 3. Solidity 结算合约（已实现）
 
-### 3.1 完整定义
+真实代码见 `src/FalsifySettlement.sol`，配套接口见 `src/interfaces/IERC8004.sol`、
+`src/interfaces/IX402.sol`、`src/interfaces/IERC20.sol`。当前真实签名：
 
 ```solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+constructor(address _validator, address _platform,
+            address _identityRegistry, address _reputationRegistry, address _usdc);
 
-interface IERC8004Reputation {
-    function recordValidation(
-        bytes32 taskHash,
-        bytes32 artifactHash,
-        uint256 agentId,
-        uint256 validationScore,
-        string calldata evidenceURI
-    ) external;
-}
-
-contract FalsifySettlement {
-    struct Assertion {
-        bytes32 assertionHash;   // 论断哈希
-        bytes32 testRef;         // 已提交属性测试标识哈希
-        address customer;        // 发布方（出赏金者）
-        uint256 bounty;          // 赏金（USDC 最小单位）
-        uint256 deadline;        // 截止时间
-        bool settled;            // 是否已结算
-        bool refunded;           // 是否已退款
-    }
-
-    struct Counterexample {
-        bytes32 hash;            // counterexampleHash
-        uint256 assertionId;
-        address agent;           // 提交者（ERC-8004 agentId 对应钱包）
-        bool falsified;          // 是否被判定为有效反例
-        bool settled;            // 是否已结算
-    }
-
-    uint256 public nextAssertionId;
-    mapping(uint256 => Assertion) public assertions;
-    mapping(bytes32 => uint256) public counterexampleToAssertion; // 防重放
-    mapping(bytes32 => bool) public settledCounterexamples;
-
-    address public validator;    // 确定性验证器的中继地址
-    IERC8004Reputation public reputation;
-    address public platform;     // 平台费收款方
-    uint256 public platformFeeBps = 1500; // 15%
-
-    event AssertionCreated(uint256 indexed assertionId, address indexed customer, uint256 bounty);
-    event CounterexampleSubmitted(uint256 indexed assertionId, bytes32 indexed counterexampleHash, address indexed agent);
-    event Falsified(uint256 indexed assertionId, bytes32 indexed counterexampleHash, address indexed agent, uint256 payout);
-    event Rejected(uint256 indexed assertionId, bytes32 indexed counterexampleHash, address indexed agent);
-    event Refunded(uint256 indexed assertionId, address indexed customer);
-
-    modifier onlyValidator() { require(msg.sender == validator, "not validator"); _; }
-
-    function createAssertion(bytes32 assertionHash, bytes32 testRef, uint256 deadline) external payable {
-        require(deadline > block.timestamp, "deadline");
-        require(msg.value > 0, "no bounty");
-        uint256 id = ++nextAssertionId;
-        assertions[id] = Assertion(assertionHash, testRef, msg.sender, msg.value, deadline, false, false);
-        emit AssertionCreated(id, msg.sender, msg.value);
-    }
-
-    function submitCounterexample(uint256 assertionId, bytes32 counterexampleHash) external {
-        Assertion storage a = assertions[assertionId];
-        require(a.customer != address(0), "no assertion");
-        require(block.timestamp <= a.deadline, "expired");
-        require(!a.settled && !a.refunded, "closed");
-        require(counterexampleToAssertion[counterexampleHash] == 0, "duplicate");
-        counterexampleToAssertion[counterexampleHash] = assertionId;
-        emit CounterexampleSubmitted(assertionId, counterexampleHash, msg.sender);
-    }
-
-    function settle(uint256 assertionId, bytes32 counterexampleHash, address agent, bool falsified) external onlyValidator {
-        Assertion storage a = assertions[assertionId];
-        require(!a.settled && !a.refunded, "closed");
-        require(counterexampleToAssertion[counterexampleHash] == assertionId, "unknown");
-        require(!settledCounterexamples[counterexampleHash], "settled");
-        settledCounterexamples[counterexampleHash] = true;
-
-        if (falsified) {
-            uint256 fee = (a.bounty * platformFeeBps) / 10000;
-            uint256 payout = a.bounty - fee;
-            a.settled = true;
-            (bool ok1, ) = agent.call{value: payout}("");
-            (bool ok2, ) = platform.call{value: fee}("");
-            require(ok1 && ok2, "transfer failed");
-            emit Falsified(assertionId, counterexampleHash, agent, payout);
-        } else {
-            emit Rejected(assertionId, counterexampleHash, agent);
-        }
-    }
-
-    function refund(uint256 assertionId) external {
-        Assertion storage a = assertions[assertionId];
-        require(a.customer == msg.sender, "not customer");
-        require(block.timestamp > a.deadline, "not expired");
-        require(!a.settled && !a.refunded, "closed");
-        a.refunded = true;
-        (bool ok, ) = a.customer.call{value: a.bounty}("");
-        require(ok, "refund failed");
-        emit Refunded(assertionId, a.customer);
-    }
-}
+function createAssertion(bytes32 assertionHash, bytes32 testRef, uint256 deadline)
+    external payable;                                                        // 原生 ETH
+function createAssertionUSDC(bytes32 assertionHash, bytes32 testRef, uint256 deadline,
+    uint256 bounty, bytes32 x402PaymentProof) external;                      // USDC + x402 证明
+function submitCounterexample(uint256 assertionId, bytes32 counterexampleHash,
+    uint256 agentId) external;                                               // ERC-8004 身份门控
+function settle(uint256 assertionId, bytes32 counterexampleHash, bool falsified)
+    external onlyValidator;
+function refund(uint256 assertionId) external;
 ```
 
-### 3.2 关键设计说明
+关键设计（均已实现并通过 Foundry 测试）：
 
-- **防重放**：`counterexampleHash` 唯一，`settledCounterexamples` 保证单次结算。
-- **赢者通吃**：第一个有效反例触发 `FALSIFIED`，随后 `settled=true` 关闭该论断。
-- **无效反例**：`settle(falsified=false)` 只发 `Rejected` 事件，不转账。
-- **资金流**：托管用 ETH 作为占位（`msg.value`）；生产版换成 USDC（ERC-20），
-  `msg.value` 改为 `transferFrom`。真实主网 USDC 由 Circle 完成，合约只记录与防重放。
-- **validator 中继**：MVP 里 Cloud Build 的判定结果由一个受信服务签名后调用
-  `settle`。未来升级为"验证者网络 + ECDSA 证明"。
+- **ERC-8004 身份门控**：`submitCounterexample` 要求
+  `identityRegistry.getAgentWallet(agentId) == msg.sender`，声誉不可转让。
+- **声誉写回**：有效反例写 `validCounterexamples`（value=+1），无效反例写
+  `falseClaimRate`（value=-1），`feedbackHash` 绑定 `counterexampleHash`。
+- **x402 关联**：`createAssertionUSDC` 把 `x402PaymentProof`（`proofOfPayment` 派生
+  哈希）上链，把链下支付与链上托管密码学绑定。
+- **防重放 / 赢者通吃 / 退款**：`counterexampleHash` 唯一、`settledCounterexamples`
+  一次性消费、过期退款，同前不变。
+- **资金流**：ETH 为 MVP 占位；USDC 走 `transferFrom` 托管、`transfer` 放款。真实
+  主网 USDC 由 Circle 完成。
+- **validator 中继**：MVP 里 Cloud Build 判定结果由受信服务调用 `settle`，未来升级
+  "验证者网络 + ECDSA 证明"。
 
 ---
 
@@ -303,7 +234,9 @@ CIRCLE_API_KEY=         # Circle Agent Stack（server-only）
 
 ## 7. 状态标记
 
-- `[尚未验证]`：上述全部代码与集成。
-- `[48小时内可以完成]`：第 1–3 节范围。
+- `[已实现并通过测试]`：`FalsifySettlement.sol`（ETH/USDC + ERC-8004 + x402 字段 +
+  防重放 + 退款）、`test/FalsifySettlement.t.sol`（6 项）、双路径反例脚本。
+- `[尚未验证]`：Google Cloud、Circle Agent Stack、真实主网 USDC、Coinbase x402 验证器。
+- `[48小时内可以完成]`：Cloud Build 部署、前端、真实用户获客、1 笔真实主网 USDC。
 - `[需要外部用户配合]`：真实赏金客户、真实主网 USDC。
 - `[未来规划，不属于MVP]`：验证者网络、ECDSA 证明、多论断并发、质押经济。
